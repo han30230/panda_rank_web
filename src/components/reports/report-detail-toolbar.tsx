@@ -11,6 +11,30 @@ type ReportDetailToolbarProps = {
   className?: string
 }
 
+async function downloadPdf(reportId: string) {
+  try {
+    const res = await fetch(`/api/reports/${reportId}/export`, {
+      credentials: "include",
+    })
+    if (!res.ok) {
+      toast.error("PDF를 만들지 못했습니다", {
+        description: "로그인 상태를 확인해 주세요.",
+      })
+      return
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `report-${reportId.slice(0, 8)}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success("PDF를 내려받았습니다")
+  } catch {
+    toast.error("다운로드에 실패했습니다")
+  }
+}
+
 async function copyShareUrl(reportId: string) {
   const origin =
     typeof window !== "undefined" ? window.location.origin : ""
@@ -46,14 +70,10 @@ export function ReportDetailToolbar({ reportId, className }: ReportDetailToolbar
         size="sm"
         className="rounded-full gap-1.5"
         type="button"
-        onClick={() =>
-          toast.info("내보내기는 준비 중입니다", {
-            description: "PDF·마크다운 내보내기는 곧 제공됩니다.",
-          })
-        }
+        onClick={() => void downloadPdf(reportId)}
       >
         <FileDown className="size-3.5" />
-        내보내기
+        PDF 내보내기
       </Button>
     </div>
   )

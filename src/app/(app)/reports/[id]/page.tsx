@@ -4,31 +4,38 @@ import { notFound } from "next/navigation"
 import { AppHeader } from "@/components/app/app-header"
 import { ReportDetailToolbar } from "@/components/reports/report-detail-toolbar"
 import { ReportMetaCopyButton } from "@/components/reports/report-meta-copy-button"
+import { ReportsSessionGate } from "@/components/reports/reports-session-gate"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getMockReport } from "@/lib/mock-reports"
+import { getSessionWithUser } from "@/lib/auth-server"
+import { prisma } from "@/lib/prisma"
+import { toReportRow } from "@/lib/report-dto"
 
 type PageProps = {
   params: Promise<{ id: string }>
 }
 
-export async function generateMetadata({ params }: PageProps) {
-  const { id } = await params
-  const report = getMockReport(id)
-  if (!report) return { title: "리포트" }
-  return {
-    title: report.title,
-    description: report.summary,
-  }
-}
-
 export default async function ReportDetailPage({ params }: PageProps) {
   const { id } = await params
-  const report = getMockReport(id)
-  if (!report) notFound()
+  const session = await getSessionWithUser()
+  if (!session) {
+    return (
+      <>
+        <AppHeader title="리포트" description="불러오는 중…" />
+        <ReportsSessionGate />
+      </>
+    )
+  }
+
+  const row = await prisma.report.findFirst({
+    where: { id, userId: session.userId },
+  })
+  if (!row) notFound()
+
+  const report = toReportRow(row)
 
   return (
     <>

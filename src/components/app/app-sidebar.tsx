@@ -34,8 +34,8 @@ export function AppSidebar({ className }: { className?: string }) {
   const router = useRouter()
   const { user, logout } = useAuth()
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await logout()
     router.push("/dashboard")
     router.refresh()
   }
@@ -101,7 +101,7 @@ export function AppSidebar({ className }: { className?: string }) {
             variant="ghost"
             className="mt-1 w-full justify-start gap-2 rounded-lg text-destructive hover:text-destructive"
             type="button"
-            onClick={handleLogout}
+            onClick={() => void handleLogout()}
           >
             <LogOut className="size-4" />
             로그아웃

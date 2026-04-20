@@ -10,23 +10,27 @@ import {
   USERS_STORAGE_KEY,
 } from "@/lib/session-constants"
 
+/** 서버 세션과 동일한 게스트 ID (SQLite 시드) */
+export const GUEST_USER_ID = "user_guest" as const
+
 export type SessionUser = {
   id: string
   email: string
   name: string
+  isGuest?: boolean
 }
-
-/** 로그인 없이 앱 전체를 쓸 때 사용하는 로컬 게스트 프로필 */
-export const GUEST_USER_ID = "guest" as const
 
 export const GUEST_USER: SessionUser = {
   id: GUEST_USER_ID,
   email: "guest@local",
   name: "게스트",
+  isGuest: true,
 }
 
 export function isGuestUser(user: SessionUser | null | undefined): boolean {
-  return user?.id === GUEST_USER_ID
+  if (!user) return false
+  if (user.isGuest === true) return true
+  return user.id === GUEST_USER_ID || user.email === "guest@local"
 }
 
 type StoredUser = SessionUser & {

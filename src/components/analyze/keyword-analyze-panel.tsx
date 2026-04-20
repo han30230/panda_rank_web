@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react"
 import Link from "next/link"
-import { Copy, Sparkles } from "lucide-react"
+import { Copy, FilePlus2, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { siteConfig } from "@/lib/site-config"
 import { cn } from "@/lib/utils"
 
 type Phase = "idle" | "loading" | "done" | "error"
@@ -23,23 +24,28 @@ const steps = [
   "연관 키워드·질문형 매칭…",
 ]
 
+type AnalyzeApiResult = {
+  intent: string
+  ideas: string[]
+  scores: { seo: number; fit: number; readability: number }
+  source: "openai" | "heuristic"
+}
+
 type KeywordAnalyzePanelProps = {
-  /** URL `?q=` 등에서 전달 */
   initialKeyword?: string | null
 }
 
 export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps) {
   const [keyword, setKeyword] = useState(() => initialKeyword?.trim() ?? "")
+  const [locale, setLocale] = useState("한국")
+  const [lang, setLang] = useState("ko")
   const [phase, setPhase] = useState<Phase>("idle")
   const [progress, setProgress] = useState(0)
   const [stepIdx, setStepIdx] = useState(0)
-  const [result, setResult] = useState<{
-    intent: string
-    ideas: string[]
-    scores: { seo: number; fit: number; readability: number }
-  } | null>(null)
+  const [result, setResult] = useState<AnalyzeApiResult | null>(null)
+  const [saving, setSaving] = useState(false)
 
-  const run = useCallback(() => {
+  const run = useCallback(async () => {
     const q = keyword.trim()
     if (!q) {
       setPhase("error")
@@ -53,18 +59,77 @@ export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps
       setProgress((p) => Math.min(88, p + 14))
       setStepIdx((i) => (i + 1) % steps.length)
     }, 400)
-    window.setTimeout(() => {
+    try {
+      const res = await fetch("/api/keywords/analyze", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword: q, locale, lang }),
+      })
       window.clearInterval(tick)
       setProgress(100)
-      setResult({
-        intent: "정보형 + 비교 후 구매",
-        ideas: [`${q} 체크리스트`, `${q} 실패 사례`, `${q} 예산별 추천`],
-        scores: { seo: 76, fit: 81, readability: 72 },
-      })
+      const payload = (await res.json().catch(() => ({}))) as
+        | AnalyzeApiResult
+        | { error?: unknown }
+      if (!res.ok) {
+        throw new Error(
+          typeof (payload as { error?: unknown }).error === "string"
+            ? ((payload as { error: string }).error)
+            : "분석 요청에 실패했습니다.",
+        )
+      }
+      const data = payload as AnalyzeApiResult
+      setResult(data)
       setPhase("done")
-      toast.success("샘플 분석이 완료되었습니다.")
-    }, 1200)
-  }, [keyword])
+      toast.success(
+        data.source === "openai"
+          ? "OpenAI 모델로 분석했습니다."
+          : "로컬 추정 모델로 분석했습니다. (OPENAI_API_KEY 없음)",
+      )
+    } catch (e) {
+      window.clearInterval(tick)
+      setPhase("error")
+      toast.error(e instanceof Error ? e.message : "분석에 실패했습니다.")
+    }
+  }, [keyword, locale, lang])
+
+  const saveReport = useCallback(async () => {
+    if (!result) return
+    const q = keyword.trim()
+    if (!q) return
+    setSaving(true)
+    try {
+      const summary = `의도: ${result.intent}. 제안 각도: ${result.ideas.join(", ")}`
+      const res = await fetch("/api/reports", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: q,
+          kind: "analyze",
+          status: "완료",
+          keyword: q,
+          summary,
+          intent: result.intent,
+          outline: result.ideas,
+          metaTitle: `${q} | ${siteConfig.name}`,
+          metaDescription: `${result.intent} 기준으로 정리한 키워드 분석 리포트입니다.`,
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { report?: { id: string } }
+      if (!res.ok) {
+        throw new Error("리포트를 저장하지 못했습니다.")
+      }
+      toast.success("리포트에 저장했습니다.")
+      if (data.report?.id) {
+        window.location.href = `/reports/${data.report.id}`
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "저장에 실패했습니다.")
+    } finally {
+      setSaving(false)
+    }
+  }, [keyword, result])
 
   function copySummary() {
     if (!result) return
@@ -78,7 +143,8 @@ export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps
       <Card className="surface-analytics rounded-2xl p-6 lg:col-span-5">
         <h2 className="text-sm font-semibold">분석 입력</h2>
         <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          키워드와 검색 맥락을 넣으면 의도·점수·제목 각도 요약이 채워집니다.
+          서버 API로 분석합니다. <code className="text-[11px]">OPENAI_API_KEY</code>가 있으면
+          OpenAI, 없으면 결정적 추정값을 씁니다.
         </p>
         <div className="mt-4 space-y-4">
           <div className="space-y-2">
@@ -101,22 +167,39 @@ export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="locale">지역</Label>
-              <Input id="locale" defaultValue="한국" className="rounded-xl" />
+              <Input
+                id="locale"
+                value={locale}
+                onChange={(e) => setLocale(e.target.value)}
+                className="rounded-xl"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="lang">언어</Label>
-              <Input id="lang" defaultValue="ko" className="rounded-xl" />
+              <Input id="lang" value={lang} onChange={(e) => setLang(e.target.value)} className="rounded-xl" />
             </div>
           </div>
           <Button
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl font-semibold shadow-sm"
             disabled={phase === "loading"}
-            onClick={run}
+            onClick={() => void run()}
             type="button"
           >
             <Sparkles className="size-3.5 opacity-90" aria-hidden />
             {phase === "loading" ? "분석 중…" : "분석 실행"}
           </Button>
+          {phase === "done" && result ? (
+            <Button
+              variant="secondary"
+              className="w-full rounded-xl"
+              type="button"
+              disabled={saving}
+              onClick={() => void saveReport()}
+            >
+              <FilePlus2 className="size-3.5" />
+              {saving ? "저장 중…" : "리포트로 저장"}
+            </Button>
+          ) : null}
           <Button variant="outline" className="w-full rounded-xl" asChild>
             <Link href="/content/new">이 주제로 초안 만들기</Link>
           </Button>
@@ -138,10 +221,10 @@ export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps
               </TabsTrigger>
             </TabsList>
             <div className="flex flex-wrap items-center gap-2">
-              {phase === "done" ? (
+              {phase === "done" && result ? (
                 <>
                   <Badge variant="secondary" className="rounded-full font-normal">
-                    샘플 데이터
+                    {result.source === "openai" ? "OpenAI" : "로컬 추정"}
                   </Badge>
                   <Button
                     type="button"
@@ -170,7 +253,7 @@ export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps
                     <p className="text-foreground text-sm font-medium">{steps[stepIdx]}</p>
                     <Badge className="inline-flex items-center gap-1 border-primary/25 bg-primary/10 font-normal text-primary">
                       <Sparkles className="size-3" aria-hidden />
-                      AI 파이프라인 실행
+                      API 요청
                     </Badge>
                   </div>
                   <div className={cn("rounded-full", "ai-processing-ring")}>
@@ -234,8 +317,7 @@ export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps
                     </Card>
                   </div>
                   <p className="text-muted-foreground text-sm leading-relaxed">
-                    상위 결과는 정보성 글과 제품 나열이 섞여 있습니다. 체크리스트·비교표
-                    포맷이 유리합니다.
+                    상위 결과는 정보성 글과 제품 나열이 섞여 있습니다. 체크리스트·비교표 포맷이 유리합니다.
                   </p>
                 </div>
               ) : null}

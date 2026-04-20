@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useState } from "react"
 import {
   Copy,
   RefreshCw,
@@ -25,10 +25,20 @@ import { Textarea } from "@/components/ui/textarea"
 type Phase = "idle" | "generating" | "done"
 
 const loadingMessages = [
-  "키워드 맥락을 읽는 중…",
-  "가독성 규칙을 적용하는 중…",
-  "제목 후보를 랭킹하는 중…",
+  "주제·키워드에 맞는 구조를 잡는 중…",
+  "문단과 톤을 맞추는 중…",
+  "메타·제목 후보를 정리하는 중…",
 ]
+
+type GeneratePayload = {
+  body: string
+  meta: { title: string; description: string }
+  titleSuggestions: string[]
+  scores: { seo: number; keywordFit: number; readability: number }
+  seoHint: string
+  checklist: string[]
+  source: "openai" | "heuristic"
+}
 
 function ScoreCard({
   title,
@@ -56,53 +66,75 @@ function ScoreCard({
 }
 
 export function ContentStudioPanel() {
-  const [topic, setTopic] = useState("미니멀 책상 정리 완벽 가이드")
-  const [keyword, setKeyword] = useState("책상 정리")
+  const [topic, setTopic] = useState("")
+  const [keyword, setKeyword] = useState("")
   const [tone, setTone] = useState("정보형 · 차분")
   const [phase, setPhase] = useState<Phase>("idle")
   const [progress, setProgress] = useState(0)
   const [loadingIdx, setLoadingIdx] = useState(0)
   const [draft, setDraft] = useState("")
   const [meta, setMeta] = useState({ title: "", desc: "" })
+  const [titleSuggestions, setTitleSuggestions] = useState<string[]>([])
+  const [scores, setScores] = useState({ seo: 0, keywordFit: 0, readability: 0 })
+  const [seoHint, setSeoHint] = useState("")
+  const [checklist, setChecklist] = useState<string[]>([])
+  const [source, setSource] = useState<"openai" | "heuristic" | null>(null)
+  const [saving, setSaving] = useState(false)
 
-  const scores = {
-    seo: 78,
-    keywordFit: 82,
-    readability: 74,
-  }
+  const generate = useCallback(async () => {
+    const t = topic.trim()
+    const k = keyword.trim()
+    if (!t || !k) {
+      toast.error("주제와 핵심 키워드를 모두 입력해 주세요.")
+      return
+    }
 
-  const titleSuggestions = useMemo(
-    () => [
-      `${topic.split(/\s+/)[0] ?? topic} | 실천 체크리스트`,
-      `초보자도 OK — ${keyword} 5단계`,
-      `${keyword}로 꾸미는 데스크 환경`,
-    ],
-    [topic, keyword],
-  )
-
-  const generate = useCallback(() => {
     setPhase("generating")
-    setProgress(12)
+    setProgress(10)
     setLoadingIdx(0)
     setDraft("")
+    setSource(null)
     const tick = window.setInterval(() => {
-      setProgress((p) => Math.min(92, p + 18))
+      setProgress((p) => Math.min(90, p + 12))
       setLoadingIdx((i) => (i + 1) % loadingMessages.length)
-    }, 550)
-    window.setTimeout(() => {
-      window.clearInterval(tick)
-      setProgress(100)
-      setDraft(
-        `## 들어가며\n${keyword}에 맞춰 책상 위 물건을 최소화하는 방법을 정리합니다.\n\n## 준비\n- 수납 1곳 확보\n- 분류 기준 3가지\n\n## 단계\n1. …\n2. …\n\n## 마무리\n포스트 하단에 체크리스트를 붙이면 체류 시간이 길어집니다.`,
-      )
-      setMeta({
-        title: titleSuggestions[0] ?? "",
-        desc: `${keyword} 실천 팁을 한 페이지에 모았습니다. 초보자를 위한 단계별 설명.`,
+    }, 450)
+
+    try {
+      const res = await fetch("/api/content/generate", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: t, keyword: k, tone: tone.trim() || "정보형 · 차분" }),
       })
+      setProgress(100)
+
+      const payload = (await res.json().catch(() => ({}))) as GeneratePayload & { error?: unknown }
+      if (!res.ok) {
+        throw new Error(
+          typeof payload.error === "string" ? payload.error : "생성 요청에 실패했습니다.",
+        )
+      }
+
+      setDraft(payload.body)
+      setMeta({ title: payload.meta.title, desc: payload.meta.description })
+      setTitleSuggestions(payload.titleSuggestions)
+      setScores(payload.scores)
+      setSeoHint(payload.seoHint)
+      setChecklist(payload.checklist)
+      setSource(payload.source)
       setPhase("done")
-      toast.success("초안이 생성되었습니다.")
-    }, 2200)
-  }, [keyword, titleSuggestions])
+      toast.success(
+        payload.source === "openai"
+          ? "OpenAI로 초안을 만들었습니다."
+          : "로컬 추정 모델로 초안을 만들었습니다. (OPENAI_API_KEY 없음)",
+      )
+    } catch (e) {
+      setPhase("idle")
+      toast.error(e instanceof Error ? e.message : "생성에 실패했습니다.")
+    } finally {
+      window.clearInterval(tick)
+    }
+  }, [topic, keyword, tone])
 
   function copyBody() {
     if (!draft) return
@@ -110,8 +142,48 @@ export function ContentStudioPanel() {
     toast.success("본문이 복사되었습니다.")
   }
 
-  function saveProject() {
-    toast.success("프로젝트에 저장되었습니다.")
+  async function saveProject() {
+    if (!draft.trim()) return
+    setSaving(true)
+    try {
+      const summary =
+        meta.desc.slice(0, 280) ||
+        draft.slice(0, 200).replace(/\n/g, " ")
+      const outlineFromHeadings = draft
+        .split("\n")
+        .filter((line) => line.startsWith("## "))
+        .map((line) => line.replace(/^##\s+/, ""))
+        .filter(Boolean)
+      const outline =
+        outlineFromHeadings.length > 0 ? outlineFromHeadings : titleSuggestions.slice(0, 4)
+
+      const res = await fetch("/api/reports", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: topic.trim() || meta.title,
+          kind: "content",
+          status: "검토",
+          keyword: keyword.trim() || undefined,
+          summary,
+          intent: tone,
+          outline,
+          metaTitle: meta.title,
+          metaDescription: meta.desc,
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { report?: { id: string } }
+      if (!res.ok) throw new Error("저장에 실패했습니다.")
+      toast.success("리포트에 저장했습니다.")
+      if (data.report?.id) {
+        window.location.href = `/reports/${data.report.id}`
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "저장에 실패했습니다.")
+    } finally {
+      setSaving(false)
+    }
   }
 
   function shareLink() {
@@ -119,12 +191,18 @@ export function ContentStudioPanel() {
     toast.success("링크가 복사되었습니다.")
   }
 
+  function applyTitleSuggestion(t: string) {
+    setMeta((m) => ({ ...m, title: t }))
+    toast.message("메타 제목에 반영했습니다.")
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
       <Card className="surface-analytics rounded-2xl p-6 lg:col-span-5">
         <h2 className="text-sm font-semibold">입력</h2>
         <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          필수 필드만 채우면 됩니다. 초안은 팀 룰(톤·금지어)에 맞춰 생성됩니다.
+          주제·키워드마다 다른 초안이 생성됩니다. <code className="text-[11px]">OPENAI_API_KEY</code>가
+          있으면 OpenAI, 없으면 서버 추정 모델을 씁니다.
         </p>
         <div className="mt-4 space-y-4">
           <div className="space-y-2">
@@ -133,6 +211,7 @@ export function ContentStudioPanel() {
               id="topic"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
+              placeholder="예: 재택근무 집중력 끌어올리기"
               className="rounded-xl"
             />
           </div>
@@ -142,7 +221,7 @@ export function ContentStudioPanel() {
               id="kw"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="예: 책상 정리"
+              placeholder="예: 뽀모도로"
               className="rounded-xl"
             />
           </div>
@@ -152,6 +231,7 @@ export function ContentStudioPanel() {
               id="tone"
               value={tone}
               onChange={(e) => setTone(e.target.value)}
+              placeholder="정보형 · 차분"
               className="rounded-xl"
             />
           </div>
@@ -159,13 +239,22 @@ export function ContentStudioPanel() {
             <Button
               type="button"
               className="inline-flex items-center justify-center gap-2 rounded-xl font-semibold shadow-sm"
-              onClick={generate}
+              onClick={() => void generate()}
               disabled={phase === "generating"}
             >
               <Sparkles className="size-3.5 opacity-90" aria-hidden />
               {phase === "generating" ? "생성 중…" : "초안 생성"}
             </Button>
-            <Button type="button" variant="outline" className="rounded-xl" onClick={() => setPhase("idle")}>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                setPhase("idle")
+                setDraft("")
+                setSource(null)
+              }}
+            >
               초기화
             </Button>
           </div>
@@ -174,7 +263,14 @@ export function ContentStudioPanel() {
 
       <Card className="surface-card overflow-hidden rounded-2xl border-border/90 p-0 lg:col-span-7">
         <div className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b bg-muted/25 px-4 py-3">
-          <p className="text-sm font-semibold">결과</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold">결과</p>
+            {source ? (
+              <Badge variant="secondary" className="rounded-full font-normal">
+                {source === "openai" ? "OpenAI" : "로컬 추정"}
+              </Badge>
+            ) : null}
+          </div>
           {phase === "done" ? (
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -187,11 +283,24 @@ export function ContentStudioPanel() {
                 <Copy className="size-3.5" />
                 복사
               </Button>
-              <Button type="button" size="sm" variant="outline" className="rounded-full bg-background" onClick={saveProject}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-full bg-background"
+                disabled={saving}
+                onClick={() => void saveProject()}
+              >
                 <Save className="size-3.5" />
-                저장
+                {saving ? "저장 중…" : "리포트에 저장"}
               </Button>
-              <Button type="button" size="sm" variant="outline" className="rounded-full bg-background" onClick={generate}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-full bg-background"
+                onClick={() => void generate()}
+              >
                 <RefreshCw className="size-3.5" />
                 다시 생성
               </Button>
@@ -206,7 +315,7 @@ export function ContentStudioPanel() {
         <div className="p-4 md:p-6">
           {phase === "idle" ? (
             <p className="text-muted-foreground text-sm">
-              왼쪽에서 초안 생성을 누르면 점수 카드와 본문이 채워집니다.
+              왼쪽에서 주제·키워드를 입력한 뒤 초안 생성을 누르면 본문·점수·메타가 채워집니다.
             </p>
           ) : null}
 
@@ -216,7 +325,7 @@ export function ContentStudioPanel() {
                 <p className="text-foreground text-sm font-medium">{loadingMessages[loadingIdx]}</p>
                 <Badge className="border-primary/25 bg-primary/10 font-normal text-primary inline-flex items-center gap-1">
                   <Sparkles className="size-3" aria-hidden />
-                  AI 분석 중
+                  API 요청
                 </Badge>
               </div>
               <div className={cn("rounded-full", "ai-processing-ring")}>
@@ -243,9 +352,7 @@ export function ContentStudioPanel() {
                     <span className="text-muted-foreground text-lg font-normal">/100</span>
                     <span className="text-muted-foreground ml-2 text-sm font-normal">SEO 가이드 점수</span>
                   </p>
-                  <p className="text-muted-foreground mt-1 max-w-xl text-sm">
-                    키워드 밀도와 헤딩 구조가 양호합니다. 서론에 동의어 한 번 더 넣으면 추천 점수가 올라갑니다.
-                  </p>
+                  <p className="text-muted-foreground mt-1 max-w-xl text-sm">{seoHint}</p>
                 </div>
                 <Button variant="outline" size="sm" className="rounded-full" type="button">
                   <Pencil className="size-3.5" />
@@ -257,31 +364,32 @@ export function ContentStudioPanel() {
                 <ScoreCard
                   title="SEO 점수"
                   score={scores.seo}
-                  hint="H2에 키워드 변형 포함을 권장합니다."
-                  action="서론 2문장에 반영"
+                  hint="제목·첫 문단·헤딩에 키워드 변형을 배치해 보세요."
+                  action={seoHint ? "위 안내 참고" : undefined}
                 />
                 <ScoreCard
                   title="키워드 적합도"
                   score={scores.keywordFit}
-                  hint="본문·제목·메타의 일치도입니다."
+                  hint="본문·메타·제목의 일치도 추정입니다."
                 />
-                <ScoreCard
-                  title="가독성"
-                  score={scores.readability}
-                  hint="문장 길이는 적정입니다."
-                />
+                <ScoreCard title="가독성" score={scores.readability} hint="문장 길이와 단락 나눔 기준입니다." />
               </div>
 
               <div>
                 <p className="text-sm font-medium">제목 추천</p>
                 <ul className="mt-2 space-y-2">
-                  {titleSuggestions.map((t) => (
+                  {titleSuggestions.map((sug) => (
                     <li
-                      key={t}
+                      key={sug}
                       className="border-border/60 flex items-center justify-between gap-2 rounded-xl border bg-muted/30 px-3 py-2 text-sm"
                     >
-                      <span className="min-w-0 flex-1">{t}</span>
-                      <Button size="xs" variant="ghost" type="button">
+                      <span className="min-w-0 flex-1">{sug}</span>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        type="button"
+                        onClick={() => applyTitleSuggestion(sug)}
+                      >
                         적용
                       </Button>
                     </li>
@@ -311,24 +419,29 @@ export function ContentStudioPanel() {
                 <TabsContent value="meta" className="mt-4 space-y-3 outline-none">
                   <div className="space-y-2">
                     <Label>메타 제목</Label>
-                    <Input value={meta.title} onChange={(e) => setMeta((m) => ({ ...m, title: e.target.value }))} className="rounded-xl" />
+                    <Input
+                      value={meta.title}
+                      onChange={(e) => setMeta((m) => ({ ...m, title: e.target.value }))}
+                      className="rounded-xl"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>메타 설명</Label>
-                    <Textarea value={meta.desc} onChange={(e) => setMeta((m) => ({ ...m, desc: e.target.value }))} className="min-h-[88px] rounded-xl text-sm" />
+                    <Textarea
+                      value={meta.desc}
+                      onChange={(e) => setMeta((m) => ({ ...m, desc: e.target.value }))}
+                      className="min-h-[88px] rounded-xl text-sm"
+                    />
                   </div>
                 </TabsContent>
                 <TabsContent value="check" className="mt-4 outline-none">
                   <ul className="text-muted-foreground space-y-2 text-sm">
-                    <li className="flex items-center gap-2">
-                      <span className="text-primary">✓</span> 첫 단락에 핵심 키워드 포함
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-primary">✓</span> H2 3개 이상
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-muted-foreground">○</span> 내부 링크 1개 이상 권장
-                    </li>
+                    {checklist.map((item, i) => (
+                      <li key={`${i}-${item}`} className="flex items-start gap-2">
+                        <span className="text-primary">✓</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
                   </ul>
                 </TabsContent>
               </Tabs>

@@ -9,7 +9,6 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/contexts/auth-context"
 import { isGuestUser } from "@/lib/local-auth"
-import { userExists } from "@/lib/local-auth"
 import { safeRedirectPath } from "@/lib/safe-redirect"
 import { loginSchema, type LoginValues } from "@/lib/validators"
 import { Button } from "@/components/ui/button"
@@ -19,7 +18,7 @@ import { Label } from "@/components/ui/label"
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, ready, login, signUp } = useAuth()
+  const { user, ready, login } = useAuth()
 
   const DEMO = {
     email: "demo@rankdeck.local",
@@ -42,9 +41,9 @@ export function LoginForm() {
     router.replace(safeRedirectPath(searchParams.get("redirect")))
   }, [ready, user, router, searchParams])
 
-  function onSubmit(data: LoginValues) {
+  async function onSubmit(data: LoginValues) {
     try {
-      login(data.email, data.password)
+      await login(data.email, data.password)
       toast.success("로그인되었습니다.")
       router.push(safeRedirectPath(searchParams.get("redirect")))
       router.refresh()
@@ -53,17 +52,9 @@ export function LoginForm() {
     }
   }
 
-  function onDemoLogin() {
+  async function onDemoLogin() {
     try {
-      if (!userExists(DEMO.email)) {
-        signUp({
-          email: DEMO.email,
-          password: DEMO.password,
-          name: DEMO.name,
-        })
-      } else {
-        login(DEMO.email, DEMO.password)
-      }
+      await login(DEMO.email, DEMO.password)
       toast.success("데모 계정으로 로그인했습니다.")
       router.push(safeRedirectPath(searchParams.get("redirect")))
       router.refresh()
@@ -117,7 +108,7 @@ export function LoginForm() {
         type="button"
         variant="secondary"
         className="h-10 w-full rounded-xl text-sm"
-        onClick={onDemoLogin}
+        onClick={() => void onDemoLogin()}
       >
         데모 계정으로 바로 로그인
       </Button>

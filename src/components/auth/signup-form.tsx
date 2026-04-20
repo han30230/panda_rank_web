@@ -33,9 +33,9 @@ export function SignupForm() {
     },
   })
 
-  function onSubmit(data: SignupValues) {
+  async function onSubmit(data: SignupValues) {
     try {
-      signUp({
+      await signUp({
         email: data.email,
         password: data.password,
         name: data.name,

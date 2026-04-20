@@ -2,6 +2,7 @@ import Link from "next/link"
 import { ChevronRight } from "lucide-react"
 
 import { AppHeader } from "@/components/app/app-header"
+import { ReportsSessionGate } from "@/components/reports/reports-session-gate"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -13,10 +14,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { listMockReports } from "@/lib/mock-reports"
+import { getSessionWithUser } from "@/lib/auth-server"
+import { prisma } from "@/lib/prisma"
+import { toReportRow } from "@/lib/report-dto"
 
-export default function ReportsListPage() {
-  const rows = listMockReports()
+export default async function ReportsListPage() {
+  const session = await getSessionWithUser()
+  if (!session) {
+    return (
+      <>
+        <AppHeader
+          title="리포트"
+          description="분석·콘텐츠 결과를 프로젝트 단위로 보관합니다."
+        />
+        <ReportsSessionGate />
+      </>
+    )
+  }
+
+  const rows = await prisma.report.findMany({
+    where: { userId: session.userId },
+    orderBy: { updatedAt: "desc" },
+  })
+  const list = rows.map(toReportRow)
 
   return (
     <>
@@ -37,7 +57,7 @@ export default function ReportsListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
+              {list.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="text-xs">
                     {r.kind === "analyze" ? "분석" : "콘텐츠"}
@@ -63,9 +83,15 @@ export default function ReportsListPage() {
             </TableBody>
           </Table>
         </Card>
-        <p className="text-muted-foreground text-xs">
-          데모 데이터입니다. 실제 제품에서는 검색·필터·태그가 추가됩니다.
-        </p>
+        {list.length === 0 ? (
+          <p className="text-muted-foreground text-xs">
+            아직 저장된 리포트가 없습니다. 키워드 분석 후 &ldquo;리포트로 저장&rdquo;를 눌러 보세요.
+          </p>
+        ) : (
+          <p className="text-muted-foreground text-xs">
+            데이터는 SQLite에 저장됩니다. 팀·권한은 추후 확장할 수 있습니다.
+          </p>
+        )}
       </div>
     </>
   )

@@ -1,3 +1,6 @@
+/** httpOnly 세션 쿠키 — 서버 `Session.token` 과 매칭 */
+export const SESSION_COOKIE_NAME = "rd_session"
+
 /** 브라우저·미들웨어에서 공유하는 세션 쿠키 이름 (데모: 클라이언트에서 설정) */
 export const SESSION_COOKIE = "rankdeck_session"
 /** 로컬스토리지: 현재 로그인 사용자 JSON */
