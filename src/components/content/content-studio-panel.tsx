@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import {
   Copy,
@@ -39,7 +39,6 @@ import {
   CONTENT_LENGTH_OPTIONS,
   CONTENT_POST_TYPES,
   CONTENT_TONE_PRESETS,
-  getTrendingTopicsForPostType,
   type TrendingTopicItem,
 } from "@/constants/content-studio"
 import type { ReportRow } from "@/lib/report-dto"
@@ -146,7 +145,24 @@ export function ContentStudioPanel() {
   const [recentReports, setRecentReports] = useState<ReportRow[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const trendingTopics = useMemo(() => getTrendingTopicsForPostType(postTypeId), [postTypeId])
+  const [trendingTopics, setTrendingTopics] = useState<TrendingTopicItem[]>([])
+  const [trendingSource, setTrendingSource] = useState<"live" | "fallback" | null>(null)
+  const [trendingLoading, setTrendingLoading] = useState(true)
+
+  useEffect(() => {
+    setTrendingLoading(true)
+    void fetch(`/api/trending/topics?postType=${encodeURIComponent(postTypeId)}`)
+      .then((r) => r.json())
+      .then((d: { items?: TrendingTopicItem[]; source?: "live" | "fallback" }) => {
+        setTrendingTopics(d.items ?? [])
+        setTrendingSource(d.source ?? "fallback")
+      })
+      .catch(() => {
+        setTrendingTopics([])
+        setTrendingSource("fallback")
+      })
+      .finally(() => setTrendingLoading(false))
+  }, [postTypeId])
 
   useEffect(() => {
     void fetch("/api/reports", { credentials: "include" })
@@ -700,10 +716,23 @@ export function ContentStudioPanel() {
                 <p className="text-sm font-bold">실시간 트렌드 주제</p>
               </div>
               <p className="text-muted-foreground mt-1 text-xs">
-                선택한 글 유형에 맞는 인기 검색형 주제입니다. 클릭하면 제목·키워드가 함께 채워집니다.
+                {trendingSource === "live"
+                  ? "Google 뉴스(한국) 상위 헤드라인을 주기적으로 반영합니다. 클릭하면 제목·키워드가 채워집니다."
+                  : "선택한 글 유형에 맞는 예시 주제입니다. 클릭하면 제목·키워드가 함께 채워집니다."}
               </p>
+              {trendingSource === "live" ? (
+                <p className="text-primary mt-1.5 text-[10px] font-semibold">실시간 피드 연동</p>
+              ) : trendingSource === "fallback" && !trendingLoading ? (
+                <p className="text-muted-foreground mt-1.5 text-[10px]">오프라인 예시 목록</p>
+              ) : null}
             </div>
             <ul className="divide-border/60 max-h-[min(70vh,520px)] divide-y overflow-y-auto">
+              {trendingLoading ? (
+                <li className="text-muted-foreground px-4 py-6 text-center text-xs">트렌드를 불러오는 중…</li>
+              ) : null}
+              {!trendingLoading && trendingTopics.length === 0 ? (
+                <li className="text-muted-foreground px-4 py-6 text-center text-xs">표시할 주제가 없습니다.</li>
+              ) : null}
               {trendingTopics.map((item) => (
                 <li key={item.id}>
                   <button
