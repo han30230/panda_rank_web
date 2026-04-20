@@ -15,6 +15,7 @@ import {
   X,
   ChevronRight,
   FileText,
+  MessageSquare,
   Pencil,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -42,11 +43,12 @@ import {
   type TrendingTopicItem,
 } from "@/constants/content-studio"
 import { TARGET_CHARS_MAX, TARGET_CHARS_MIN } from "@/lib/content-char-target"
+import { PANDA_GREEN, PANDA_GREEN_HOVER } from "@/lib/pandarank-theme"
 import type { ReportRow } from "@/lib/report-dto"
 
 /** 네이버 블로그 제목 길이에 맞춤 (트렌드 예시·긴 제목 허용) */
 const TITLE_MAX = 100
-const KEYWORD_MAX = 5
+const KEYWORD_MAX = 20
 const IMAGE_MAX = 10
 const IMAGE_MAX_MB = 5
 
@@ -98,6 +100,8 @@ type GeneratePayload = {
   charTarget?: { min: number; max: number; label: string }
 }
 
+export type ContentStudioVariant = "default" | "pandarank"
+
 function ScoreCard({
   title,
   score,
@@ -123,7 +127,12 @@ function ScoreCard({
   )
 }
 
-export function ContentStudioPanel() {
+export function ContentStudioPanel({
+  variant = "default",
+}: {
+  variant?: ContentStudioVariant
+}) {
+  const isPanda = variant === "pandarank"
   const [postTypeId, setPostTypeId] = useState<string>(CONTENT_POST_TYPES[0]!.id)
   const [topic, setTopic] = useState("")
   const [keywordChips, setKeywordChips] = useState<string[]>([])
@@ -156,6 +165,9 @@ export function ContentStudioPanel() {
   const [trendingTopics, setTrendingTopics] = useState<TrendingTopicItem[]>([])
   const [trendingSource, setTrendingSource] = useState<"live" | "fallback" | null>(null)
   const [trendingLoading, setTrendingLoading] = useState(true)
+
+  const [refineInput, setRefineInput] = useState("")
+  const [refinePhase, setRefinePhase] = useState<"idle" | "loading">("idle")
 
   useEffect(() => {
     setTrendingLoading(true)
@@ -318,6 +330,41 @@ export function ContentStudioPanel() {
     }
   }, [topic, keywordChips, tonePresetId, customTone, lengthMode, postTypeId, targetCharsInput])
 
+  const runRefine = useCallback(async () => {
+    const ins = refineInput.trim()
+    if (!ins) {
+      toast.error("어떻게 바꿀지 한 줄 이상 입력해 주세요.")
+      return
+    }
+    if (!draft.trim()) {
+      toast.error("먼저 본문을 생성해 주세요.")
+      return
+    }
+    setRefinePhase("loading")
+    try {
+      const res = await fetch("/api/chat/influencer/refine", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draft, instruction: ins }),
+      })
+      const payload = (await res.json().catch(() => ({}))) as { body?: string; error?: unknown }
+      if (!res.ok) {
+        throw new Error(
+          typeof payload.error === "string" ? payload.error : "다듬기에 실패했습니다.",
+        )
+      }
+      if (!payload.body) throw new Error("응답 본문이 없습니다.")
+      setDraft(payload.body)
+      setRefineInput("")
+      toast.success("본문에 반영했습니다.")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "다듬기에 실패했습니다.")
+    } finally {
+      setRefinePhase("idle")
+    }
+  }, [draft, refineInput])
+
   function copyBody() {
     if (!draft) return
     void navigator.clipboard.writeText(draft)
@@ -395,20 +442,32 @@ export function ContentStudioPanel() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="text-2xl" aria-hidden>
-            📄
+            {isPanda ? "🐼" : "📄"}
           </span>
           <div>
-            <h2 className="text-lg font-bold tracking-tight">블로그 글쓰기</h2>
+            <h2 className="text-lg font-bold tracking-tight">
+              {isPanda ? "인플루언서 포스트" : "블로그 글쓰기"}
+            </h2>
             <p className="text-muted-foreground text-xs">
-              네이버 검색·블로그에 맞춘 구조·메타·본문 (의도·밀도·가독성)
+              {isPanda
+                ? "판다 AI 스타일 · 실시간 상위 노출 패턴에 맞춘 초안·다듬기"
+                : "네이버 검색·블로그에 맞춘 구조·메타·본문 (의도·밀도·가독성)"}
             </p>
           </div>
-          <Badge variant="secondary" className="ml-1 rounded-full font-normal">
-            2.1
+          <Badge
+            variant="secondary"
+            className={cn(
+              "ml-1 rounded-full font-normal",
+              isPanda && "border-[#00C95A]/40 bg-[#00C95A]/12 text-[#008f45]",
+            )}
+          >
+            {isPanda ? "판다 AI" : "2.1"}
           </Badge>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground text-xs tabular-nums">오늘 생성은 대시보드에서 확인</span>
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {isPanda ? "채팅형 도구 · 리포트에서 이력 확인" : "오늘 생성은 대시보드에서 확인"}
+          </span>
           <Button size="sm" variant="outline" className="rounded-full text-xs" asChild>
             <Link href="/settings/billing">크레딧</Link>
           </Button>
@@ -454,7 +513,10 @@ export function ContentStudioPanel() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <Label htmlFor="topic" className="text-sm font-medium">
-                    포스트 제목 <span className="text-emerald-600">*</span>
+                    포스트 제목{" "}
+                    <span style={{ color: isPanda ? PANDA_GREEN : undefined }} className={!isPanda ? "text-emerald-600" : ""}>
+                      *
+                    </span>
                   </Label>
                   <span
                     className={cn(
@@ -704,9 +766,21 @@ export function ContentStudioPanel() {
                   onClick={() => void generate()}
                   className={cn(
                     "h-12 min-w-[200px] flex-1 rounded-xl font-semibold shadow-md transition-all",
-                    "bg-gradient-to-r from-violet-600 via-violet-600 to-fuchsia-600 text-white hover:opacity-[0.96]",
-                    "dark:from-violet-500 dark:to-fuchsia-500",
+                    isPanda
+                      ? "border-0 text-white shadow-none hover:opacity-[0.95]"
+                      : "bg-gradient-to-r from-violet-600 via-violet-600 to-fuchsia-600 text-white hover:opacity-[0.96] dark:from-violet-500 dark:to-fuchsia-500",
                   )}
+                  style={
+                    isPanda
+                      ? { backgroundColor: PANDA_GREEN }
+                      : undefined
+                  }
+                  onMouseEnter={(e) => {
+                    if (isPanda) (e.currentTarget as HTMLButtonElement).style.backgroundColor = PANDA_GREEN_HOVER
+                  }}
+                  onMouseLeave={(e) => {
+                    if (isPanda) (e.currentTarget as HTMLButtonElement).style.backgroundColor = PANDA_GREEN
+                  }}
                 >
                   {phase === "generating" ? (
                     <>
@@ -770,9 +844,14 @@ export function ContentStudioPanel() {
         {/* 오른쪽: 트렌드 */}
         <aside className="space-y-3">
           <Card className="border-border/80 overflow-hidden rounded-2xl border bg-card shadow-sm">
-            <div className="border-border/60 bg-gradient-to-r from-violet-600/10 to-fuchsia-600/10 px-4 py-3">
+            <div
+              className={cn(
+                "border-border/60 px-4 py-3",
+                isPanda ? "bg-[#00C95A]/10" : "bg-gradient-to-r from-violet-600/10 to-fuchsia-600/10",
+              )}
+            >
               <div className="flex items-center gap-2">
-                <Sparkles className="text-violet-600 size-4" />
+                <Sparkles className={cn("size-4", isPanda ? "text-[#00C95A]" : "text-violet-600")} />
                 <p className="text-sm font-bold">실시간 트렌드 주제</p>
               </div>
               <p className="text-muted-foreground mt-1 text-xs">
@@ -1010,6 +1089,42 @@ export function ContentStudioPanel() {
                   </ul>
                 </TabsContent>
               </Tabs>
+
+              {isPanda ? (
+                <Card className="mt-6 border-[#00C95A]/35 bg-[#00C95A]/[0.07] p-4 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="size-4 shrink-0" style={{ color: PANDA_GREEN }} aria-hidden />
+                    <p className="text-sm font-semibold">판다 AI와 이어서 다듬기</p>
+                  </div>
+                  <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                    톤 변경·소제목 추가·요약 등을 입력하면 본문 전체를 요청에 맞게 다시 다듬습니다. (OPENAI 키가 있으면
+                    품질이 높아집니다.)
+                  </p>
+                  <Textarea
+                    className="mt-3 min-h-[88px] rounded-xl text-sm"
+                    placeholder='예: 더 친근한 말투로 바꿔 줘 / "비용" 소제목 추가해 줘'
+                    value={refineInput}
+                    onChange={(e) => setRefineInput(e.target.value)}
+                    disabled={refinePhase === "loading"}
+                  />
+                  <Button
+                    type="button"
+                    className="mt-3 w-full rounded-xl font-semibold text-white sm:w-auto"
+                    style={{ backgroundColor: PANDA_GREEN }}
+                    disabled={refinePhase === "loading" || phase !== "done"}
+                    onClick={() => void runRefine()}
+                  >
+                    {refinePhase === "loading" ? (
+                      <>
+                        <Loader2 className="mr-2 size-4 animate-spin" />
+                        반영 중…
+                      </>
+                    ) : (
+                      "요청 반영하기"
+                    )}
+                  </Button>
+                </Card>
+              ) : null}
             </div>
           ) : null}
         </div>

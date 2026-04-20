@@ -188,6 +188,17 @@
   .ai-processing-ring {
     animation: ai-border 2s ease-in-out infinite;
   }
+  @keyframes panda-marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+  .animate-panda-marquee {
+    animation: panda-marquee 38s linear infinite;
+  }
   /* 텍스트 위계 — 제목/리드 구분 강화 */
   .text-eyebrow {
     @apply text-[11px] font-semibold tracking-[0.14em] text-primary/95 uppercase;

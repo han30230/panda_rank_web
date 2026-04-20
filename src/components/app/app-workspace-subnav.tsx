@@ -10,6 +10,12 @@ const tabs = [
   { href: "/dashboard", label: "홈", prefix: "/dashboard" },
   { href: "/analyze/keyword", label: "키워드 분석", prefix: "/analyze" },
   { href: "/content/new", label: "AI 콘텐츠", prefix: "/content", badge: "블로그" },
+  {
+    href: "/chat/tool/influencer/post",
+    label: "인플루언서",
+    prefix: "/chat",
+    badge: "판다",
+  },
   { href: "/reports", label: "리포트", prefix: "/reports" },
   { href: "/workspace/new", label: "새 작업", prefix: "/workspace" },
 ] as const
@@ -17,6 +23,9 @@ const tabs = [
 function isTabActive(pathname: string, prefix: string, href: string) {
   if (prefix === "/dashboard") {
     return pathname === "/dashboard" || pathname.startsWith("/dashboard/")
+  }
+  if (prefix === "/chat") {
+    return pathname === href || pathname.startsWith(`${href}/`) || pathname.startsWith("/chat/")
   }
   return pathname === href || pathname.startsWith(`${prefix}/`) || pathname.startsWith(prefix + "/")
 }

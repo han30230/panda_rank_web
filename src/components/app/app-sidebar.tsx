@@ -8,6 +8,7 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
+  MessageSquare,
   PlusCircle,
   ScanSearch,
   Settings,
@@ -26,6 +27,7 @@ const nav = [
   { href: "/workspace/new", label: "새 작업", icon: PlusCircle },
   { href: "/analyze/keyword", label: "키워드 분석", icon: ScanSearch },
   { href: "/content/new", label: "콘텐츠 작성", icon: FileEdit },
+  { href: "/chat/tool/influencer/post", label: "인플루언서 포스트", icon: MessageSquare },
   { href: "/reports", label: "리포트", icon: FileText },
 ]
 
@@ -63,8 +65,10 @@ export function AppSidebar({ className }: { className?: string }) {
             const active =
               item.href === "/reports"
                 ? pathname.startsWith("/reports")
-                : pathname === item.href ||
-                  pathname.startsWith(`${item.href}/`)
+                : item.href.startsWith("/chat")
+                  ? pathname.startsWith("/chat")
+                  : pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`)
             return (
               <Button
                 key={item.href}
