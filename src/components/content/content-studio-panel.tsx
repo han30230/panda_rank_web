@@ -66,6 +66,24 @@ const loadingMessages = [
   "메타·제목 후보를 정리하는 중…",
 ]
 
+/** 본문에서 소제목 추출: 마크다운 ## 또는 네이버에서 쓰기 쉬운 ◆·■ 한 줄 제목 */
+function extractOutlineFromDraft(draft: string): string[] {
+  const out: string[] = []
+  for (const raw of draft.split("\n")) {
+    const line = raw.trim()
+    if (!line) continue
+    if (line.startsWith("## ")) {
+      out.push(line.replace(/^##\s+/, "").trim())
+      continue
+    }
+    if (/^[◆◇■▶]/.test(line)) {
+      const t = line.replace(/^[◆◇■▶]\s*/, "").trim()
+      if (t.length > 0 && t.length < 120) out.push(t)
+    }
+  }
+  return out
+}
+
 type GeneratePayload = {
   body: string
   meta: { title: string; description: string }
@@ -271,11 +289,7 @@ export function ContentStudioPanel() {
       const summary =
         meta.desc.slice(0, 280) ||
         draft.slice(0, 200).replace(/\n/g, " ")
-      const outlineFromHeadings = draft
-        .split("\n")
-        .filter((line) => line.startsWith("## "))
-        .map((line) => line.replace(/^##\s+/, ""))
-        .filter(Boolean)
+      const outlineFromHeadings = extractOutlineFromDraft(draft)
       const outline =
         outlineFromHeadings.length > 0 ? outlineFromHeadings : titleSuggestions.slice(0, 4)
 
