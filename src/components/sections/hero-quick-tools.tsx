@@ -34,19 +34,19 @@ type Props = {
 
 export function HeroQuickTools({ items }: Props) {
   return (
-    <div className="grid grid-cols-4 gap-3 sm:grid-cols-4 md:gap-4 lg:grid-cols-8">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4 lg:grid-cols-8">
       {items.map((item) => {
         const Icon = iconMap[item.icon]
         return (
           <Link
             key={item.id}
             href={item.href}
-            className="group focus-visible:ring-ring flex flex-col items-center gap-2 rounded-2xl py-2 text-center outline-none transition-transform hover:scale-[1.02] focus-visible:ring-2"
+            className="group focus-visible:ring-ring flex min-h-[5.5rem] flex-col items-center justify-center gap-2 rounded-2xl py-2 text-center outline-none transition-transform active:scale-[0.98] hover:scale-[1.02] focus-visible:ring-2 sm:min-h-0"
           >
             <div
-              className={`relative flex size-12 items-center justify-center rounded-2xl ring-1 transition-shadow group-hover:shadow-md md:size-14 ${item.colorClass}`}
+              className={`relative flex size-14 items-center justify-center rounded-2xl ring-1 transition-shadow group-hover:shadow-md ${item.colorClass}`}
             >
-              <Icon className="size-6 md:size-7" strokeWidth={1.75} aria-hidden />
+              <Icon className="size-7" strokeWidth={1.75} aria-hidden />
               {item.badge === "ai" ? (
                 <span className="absolute -right-0.5 -top-0.5 flex size-5 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-border/80">
                   <Sparkles className="text-primary size-3" aria-hidden />
@@ -58,7 +58,7 @@ export function HeroQuickTools({ items }: Props) {
                 </Badge>
               ) : null}
             </div>
-            <span className="text-muted-foreground group-hover:text-foreground max-w-[5.5rem] text-[11px] font-medium leading-tight md:text-xs">
+            <span className="text-muted-foreground group-hover:text-foreground max-w-[7rem] text-[11px] font-medium leading-tight sm:max-w-[5.5rem] md:text-xs">
               {item.label}
             </span>
           </Link>

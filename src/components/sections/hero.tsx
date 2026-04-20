@@ -34,18 +34,20 @@ export function Hero() {
     <section className="relative overflow-hidden">
       <div className="hero-backdrop pointer-events-none absolute inset-0 -z-20" aria-hidden />
       <div className="hero-grid-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
-      <div className="marketing-container relative pb-16 pt-20 md:pb-24 md:pt-28">
+      <div className="marketing-container relative pb-14 pt-16 sm:pb-16 sm:pt-20 md:pb-24 md:pt-28">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-eyebrow">{heroContent.eyebrow}</p>
-          <h1 className="text-display mx-auto mt-5 max-w-[22ch] sm:max-w-none">
+          <h1 className="text-display-hero mx-auto mt-4 max-w-[20ch] px-1 sm:mt-5 sm:max-w-none sm:px-0">
             {heroContent.titleLines[0]}
             <br className="hidden sm:block" /> {heroContent.titleLines[1]}
           </h1>
-          <p className="text-lead mx-auto mt-6 max-w-2xl text-balance">{heroContent.description}</p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <p className="text-muted-foreground mx-auto mt-5 max-w-2xl text-balance text-sm leading-relaxed sm:mt-6 sm:text-base md:text-lg">
+            {heroContent.description}
+          </p>
+          <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:mx-auto sm:mt-10 sm:max-w-none sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
             <Button
               size="lg"
-              className="h-12 rounded-full px-9 text-base font-semibold shadow-[0_4px_16px_-2px_oklch(0.52_0.12_175/0.4)]"
+              className="h-12 w-full min-h-12 rounded-full px-8 text-base font-semibold shadow-[0_4px_16px_-2px_oklch(0.52_0.12_175/0.4)] sm:w-auto sm:px-9"
               asChild
             >
               <Link href={heroContent.primaryCta.href}>
@@ -56,7 +58,7 @@ export function Hero() {
             <Button
               size="lg"
               variant="outline"
-              className="h-12 rounded-full border-border/90 bg-background px-7"
+              className="h-12 w-full min-h-12 rounded-full border-border/90 bg-background px-7 sm:w-auto"
               asChild
             >
               <Link href={heroContent.secondaryCta.href}>{heroContent.secondaryCta.label}</Link>
@@ -64,9 +66,9 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="mx-auto mt-16 grid max-w-6xl gap-6 lg:mt-20 lg:grid-cols-12 lg:items-start lg:gap-8">
-          <div className="flex flex-col gap-6 lg:col-span-8">
-            <Card className="surface-card rounded-[1.35rem] p-6 md:p-8">
+        <div className="mx-auto mt-12 grid max-w-6xl gap-5 sm:mt-16 sm:gap-6 lg:mt-20 lg:grid-cols-12 lg:items-start lg:gap-8">
+          <div className="flex flex-col gap-5 sm:gap-6 lg:col-span-8">
+            <Card className="surface-card rounded-[1.35rem] p-4 sm:p-6 md:p-8">
               <div className="mb-4 flex items-center justify-between gap-2">
                 <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                   키워드 검색

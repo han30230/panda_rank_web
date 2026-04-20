@@ -30,7 +30,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Sidebar className="flex w-full border-0" />
             </SheetContent>
           </Sheet>
-          <Link href="/dashboard" className="text-sm font-semibold hover:underline">
+          <Link href="/" className="text-sm font-semibold hover:underline">
             {siteConfig.name}
           </Link>
         </div>

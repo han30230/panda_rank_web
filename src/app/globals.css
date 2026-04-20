@@ -195,6 +195,11 @@
   .text-display {
     @apply text-foreground text-[2rem] font-semibold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl;
   }
+  /** 랜딩 히어로 — 모바일에서 한 줄 높이·가독성 우선 (일반 text-display보다 한 단계 작게) */
+  .text-display-hero {
+    @apply text-foreground font-semibold tracking-tight text-balance;
+    @apply text-[1.5rem] leading-snug sm:text-[1.75rem] md:text-3xl md:leading-tight lg:text-4xl;
+  }
   .text-title {
     @apply text-foreground text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl;
   }

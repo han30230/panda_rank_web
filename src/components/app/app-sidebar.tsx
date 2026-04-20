@@ -48,7 +48,7 @@ export function AppSidebar({ className }: { className?: string }) {
       )}
     >
       <Link
-        href="/dashboard"
+        href="/"
         className="hover:bg-sidebar-accent/50 flex h-14 items-center gap-2 rounded-lg px-4 transition-colors"
       >
         <span className="bg-sidebar-primary text-sidebar-primary-foreground flex size-9 items-center justify-center rounded-xl">
