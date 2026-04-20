@@ -7,7 +7,7 @@ const bodySchema = z.object({
   topic: z.string().trim().min(1, "주제를 입력해 주세요."),
   keyword: z.string().trim().min(1, "핵심 키워드를 입력해 주세요."),
   tone: z.string().trim().optional().default("정보형 · 차분"),
-  length: z.enum(["draft", "full"]).default("draft"),
+  length: z.enum(["draft", "full"]).default("full"),
 })
 
 export async function POST(req: Request) {

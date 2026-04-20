@@ -48,7 +48,7 @@ export function heuristicGenerate(
   topic: string,
   keyword: string,
   tone: string,
-  length: ContentLengthMode = "draft",
+  length: ContentLengthMode = "full",
 ): ContentGenerateResult {
   const t = topic.trim() || "블로그 포스트"
   const k = keyword.trim() || "키워드"
@@ -198,7 +198,7 @@ export async function generateWithOpenAI(
   topic: string,
   keyword: string,
   tone: string,
-  length: ContentLengthMode = "draft",
+  length: ContentLengthMode = "full",
 ): Promise<ContentGenerateResult | null> {
   const key = process.env.OPENAI_API_KEY?.trim()
   if (!key) return null

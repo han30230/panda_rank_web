@@ -43,13 +43,13 @@ export const CONTENT_LENGTH_OPTIONS: {
   description: string
 }[] = [
   {
-    id: "draft",
-    label: "초안",
-    description: "구조·핵심만 빠르게 (짧은 분량)",
-  },
-  {
     id: "full",
     label: "전체 글",
     description: "섹션을 풍부하게 완성형 (긴 분량)",
+  },
+  {
+    id: "draft",
+    label: "초안",
+    description: "구조·핵심만 빠르게 (짧은 분량)",
   },
 ]

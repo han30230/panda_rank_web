@@ -109,7 +109,7 @@ export function ContentStudioPanel() {
   const [kwInput, setKwInput] = useState("")
   const [tonePresetId, setTonePresetId] = useState("info-calm")
   const [customTone, setCustomTone] = useState("")
-  const [lengthMode, setLengthMode] = useState<"draft" | "full">("draft")
+  const [lengthMode, setLengthMode] = useState<"draft" | "full">("full")
   const [phase, setPhase] = useState<Phase>("idle")
   const [progress, setProgress] = useState(0)
   const [loadingIdx, setLoadingIdx] = useState(0)
