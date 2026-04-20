@@ -18,10 +18,10 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 export function Navbar() {
   return (
     <header className="border-border/55 sticky top-0 z-50 w-full border-b bg-background/85 shadow-sm backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 md:px-6 lg:px-8">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-4 md:px-6 lg:px-8">
         <Link
           href="/"
-          className="flex items-center gap-2 font-semibold tracking-tight text-foreground"
+          className="flex shrink-0 items-center gap-2 font-semibold tracking-tight text-foreground"
         >
           <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <BarChart3 className="size-4" aria-hidden />
@@ -29,11 +29,16 @@ export function Navbar() {
           <span className="hidden sm:inline">{siteConfig.name}</span>
         </Link>
 
-        <NavigationMenu className="hidden lg:flex" viewport={false}>
-          <NavigationMenuList className="flex gap-0">
+        <NavigationMenu
+          className="hidden min-w-0 max-w-[min(100%,52rem)] flex-1 justify-center lg:flex"
+          viewport={false}
+        >
+          <NavigationMenuList className="flex max-w-full flex-nowrap justify-center gap-0 overflow-x-auto overscroll-x-contain py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {mainNav.map((group) => (
               <NavigationMenuItem key={group.title}>
-                <NavigationMenuTrigger>{group.title}</NavigationMenuTrigger>
+                <NavigationMenuTrigger className="h-9 shrink-0 px-2 text-xs font-medium sm:px-2.5 sm:text-sm">
+                  {group.title}
+                </NavigationMenuTrigger>
                 <NavigationMenuContent className="data-[motion^=from-]:animate-none data-[motion^=to-]:animate-none">
                   <ul className="grid w-[min(90vw,380px)] gap-1 p-2 sm:w-[400px]">
                     {group.items.map((item) => (
@@ -68,7 +73,7 @@ export function Navbar() {
           </NavigationMenuList>
         </NavigationMenu>
 
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <Button variant="ghost" size="icon-sm" className="hidden sm:inline-flex" asChild>
             <Link href="/analyze/keyword" aria-label="분석 도구로 이동">
               <Search className="size-4" />
@@ -87,14 +92,14 @@ export function Navbar() {
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[min(100vw,320px)] gap-6">
+            <SheetContent side="right" className="w-[min(100vw,380px)] gap-6">
               <Link href="/" className="flex items-center gap-2 font-semibold">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                   <BarChart3 className="size-4" />
                 </span>
                 {siteConfig.name}
               </Link>
-              <nav className="flex flex-col gap-4 text-sm">
+              <nav className="flex max-h-[min(70vh,560px)] flex-col gap-4 overflow-y-auto pr-1 text-sm">
                 {mainNav.map((group) => (
                   <div key={group.title}>
                     <p className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
@@ -102,12 +107,15 @@ export function Navbar() {
                     </p>
                     <ul className="flex flex-col gap-1">
                       {group.items.map((item) => (
-                        <li key={item.title}>
+                        <li key={item.title + item.href}>
                           <Link
                             href={item.href}
-                            className="block rounded-lg px-2 py-2 font-medium hover:bg-muted"
+                            className="block rounded-lg px-2 py-2 hover:bg-muted"
                           >
-                            {item.title}
+                            <span className="font-medium">{item.title}</span>
+                            <span className="text-muted-foreground mt-0.5 block text-xs leading-snug">
+                              {item.description}
+                            </span>
                           </Link>
                         </li>
                       ))}
