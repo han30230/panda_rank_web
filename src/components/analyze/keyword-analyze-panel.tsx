@@ -23,8 +23,13 @@ const steps = [
   "연관 키워드·질문형 매칭…",
 ]
 
-export function KeywordAnalyzePanel() {
-  const [keyword, setKeyword] = useState("")
+type KeywordAnalyzePanelProps = {
+  /** URL `?q=` 등에서 전달 */
+  initialKeyword?: string | null
+}
+
+export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps) {
+  const [keyword, setKeyword] = useState(() => initialKeyword?.trim() ?? "")
   const [phase, setPhase] = useState<Phase>("idle")
   const [progress, setProgress] = useState(0)
   const [stepIdx, setStepIdx] = useState(0)

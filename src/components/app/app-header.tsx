@@ -1,8 +1,20 @@
+"use client"
+
 import Link from "next/link"
 import { Bell, Search } from "lucide-react"
+import { toast } from "sonner"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/auth-context"
+
+function initialsFromName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    return (parts[0]![0]! + parts[1]![0]!).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase() || "ME"
+}
 
 type AppHeaderProps = {
   title: string
@@ -14,6 +26,8 @@ type AppHeaderProps = {
  * 앱 상단 바 — 페이지 제목 위계를 고정하고, 우측은 보조 액션만 둡니다.
  */
 export function AppHeader({ title, description, action }: AppHeaderProps) {
+  const { user } = useAuth()
+
   return (
     <header className="border-border/70 bg-background/92 flex h-[3.75rem] shrink-0 items-center justify-between gap-4 border-b px-4 shadow-[0_1px_0_oklch(0.48_0.11_188/0.06)] backdrop-blur-md md:px-6">
       <div className="min-w-0">
@@ -29,15 +43,25 @@ export function AppHeader({ title, description, action }: AppHeaderProps) {
       <div className="flex items-center gap-1 sm:gap-2">
         {action ? <div className="mr-1 flex items-center">{action}</div> : null}
         <Button variant="ghost" size="icon-sm" asChild>
-          <Link href="/dashboard" aria-label="검색">
+          <Link href="/analyze/keyword" aria-label="키워드 분석으로 이동">
             <Search className="size-4" />
           </Link>
         </Button>
-        <Button variant="ghost" size="icon-sm" aria-label="알림">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="알림"
+          type="button"
+          onClick={() =>
+            toast.message("알림", { description: "푸시 알림은 곧 연결됩니다." })
+          }
+        >
           <Bell className="size-4" />
         </Button>
         <Avatar className="size-8 border border-border/60">
-          <AvatarFallback className="text-xs font-medium">ME</AvatarFallback>
+          <AvatarFallback className="text-xs font-medium">
+            {user ? initialsFromName(user.name) : "ME"}
+          </AvatarFallback>
         </Avatar>
       </div>
     </header>

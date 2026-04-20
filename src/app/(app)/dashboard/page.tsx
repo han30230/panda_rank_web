@@ -1,13 +1,12 @@
-import Link from "next/link"
-import { Plus } from "lucide-react"
-
-import { AppHeader } from "@/components/app/app-header"
+import { DashboardPageHeader } from "@/components/app/dashboard-page-header"
 import { AiRecommendations } from "@/components/dashboard/ai-recommendations"
 import { DashboardActivityChart } from "@/components/dashboard/dashboard-activity-chart"
 import { DashboardWelcomeBanner } from "@/components/dashboard/dashboard-welcome-banner"
 import { KpiCards } from "@/components/dashboard/kpi-cards"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { RecentProjects } from "@/components/dashboard/recent-projects"
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -15,18 +14,7 @@ import { Progress } from "@/components/ui/progress"
 export default function DashboardPage() {
   return (
     <>
-      <AppHeader
-        title="홈"
-        description="오늘의 작업과 사용량을 확인하세요."
-        action={
-          <Button size="sm" className="rounded-full px-4 font-semibold shadow-sm" asChild>
-            <Link href="/workspace/new">
-              <Plus className="size-4" />
-              새 작업
-            </Link>
-          </Button>
-        }
-      />
+      <DashboardPageHeader />
       <div className="app-content-shell space-y-10">
         <section aria-label="온보딩 안내">
           <DashboardWelcomeBanner />

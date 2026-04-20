@@ -7,6 +7,7 @@ import { ArrowUpRight, Key, Plus, Search, Sparkles } from "lucide-react"
 import { useState } from "react"
 
 import { HeroQuickTools } from "@/components/sections/hero-quick-tools"
+import { useAuth } from "@/contexts/auth-context"
 import {
   heroContent,
   heroPromo,
@@ -20,6 +21,7 @@ import { Input } from "@/components/ui/input"
 
 export function Hero() {
   const router = useRouter()
+  const { user, ready } = useAuth()
   const [mode, setMode] = useState<"creator" | "seller">("creator")
   const [query, setQuery] = useState("")
 
@@ -27,6 +29,10 @@ export function Hero() {
     e.preventDefault()
     const q = query.trim()
     if (!q) return
+    if (ready && user) {
+      router.push(`/analyze/keyword?q=${encodeURIComponent(q)}`)
+      return
+    }
     router.push(`/signup?intent=analyze&q=${encodeURIComponent(q)}`)
   }
 

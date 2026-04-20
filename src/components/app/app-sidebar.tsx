@@ -1,17 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   BarChart3,
   FileEdit,
   FileText,
   LayoutDashboard,
+  LogOut,
   PlusCircle,
   ScanSearch,
   Settings,
 } from "lucide-react"
 
+import { useAuth } from "@/contexts/auth-context"
 import { siteConfig } from "@/lib/site-config"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -28,6 +30,14 @@ const nav = [
 
 export function AppSidebar({ className }: { className?: string }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, logout } = useAuth()
+
+  function handleLogout() {
+    logout()
+    router.push("/login")
+    router.refresh()
+  }
 
   return (
     <aside
@@ -71,11 +81,25 @@ export function AppSidebar({ className }: { className?: string }) {
         </nav>
       </ScrollArea>
       <div className="p-2">
+        {user ? (
+          <p className="text-muted-foreground mb-2 truncate px-2 text-xs font-medium" title={user.email}>
+            {user.email}
+          </p>
+        ) : null}
         <Button variant="ghost" className="w-full justify-start gap-2 rounded-lg" asChild>
           <Link href="/settings/billing">
             <Settings className="size-4" />
             설정
           </Link>
+        </Button>
+        <Button
+          variant="ghost"
+          className="mt-1 w-full justify-start gap-2 rounded-lg text-destructive hover:text-destructive"
+          type="button"
+          onClick={handleLogout}
+        >
+          <LogOut className="size-4" />
+          로그아웃
         </Button>
         <Button variant="outline" className="mt-2 w-full rounded-lg" size="sm" asChild>
           <Link href="/">랜딩으로</Link>

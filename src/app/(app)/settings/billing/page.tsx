@@ -1,8 +1,6 @@
-import Link from "next/link"
-
 import { AppHeader } from "@/components/app/app-header"
+import { BillingActions } from "./billing-actions"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 
@@ -26,14 +24,7 @@ export default function BillingSettingsPage() {
             <Badge className="rounded-full">활성</Badge>
           </div>
           <Separator className="my-6" />
-          <div className="flex flex-wrap gap-2">
-            <Button className="rounded-full" asChild>
-              <Link href="/pricing">플랜 변경</Link>
-            </Button>
-            <Button variant="outline" className="rounded-full" type="button">
-              결제 수단 관리
-            </Button>
-          </div>
+          <BillingActions />
         </Card>
         <Card className="rounded-2xl border-border/80 p-6 shadow-sm">
           <p className="text-sm font-medium">청구 내역</p>

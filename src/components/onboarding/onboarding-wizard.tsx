@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
+import { saveOnboardingProfile } from "@/lib/local-auth"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -54,6 +55,13 @@ export function OnboardingWizard() {
   }
 
   function finish() {
+    if (role) {
+      saveOnboardingProfile({
+        role,
+        goals: Array.from(selectedGoals),
+        siteUrl: siteUrl.trim(),
+      })
+    }
     router.push("/dashboard")
   }
 
