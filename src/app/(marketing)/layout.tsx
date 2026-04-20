@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
 
 import { PublicPageShell } from "@/components/layout/public-page-shell"
-import { siteConfig } from "@/lib/site-config"
+import { siteConfig, siteUrl } from "@/lib/site-config"
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
+  metadataBase: new URL(siteUrl),
   title: {
     default: `${siteConfig.name} — 키워드·콘텐츠 자동화`,
     template: `%s | ${siteConfig.name}`,
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `${siteConfig.name} — 키워드·콘텐츠 자동화`,
     description: siteConfig.description,
-    url: siteConfig.url,
+    url: siteUrl,
     siteName: siteConfig.name,
     locale: "ko_KR",
     type: "website",

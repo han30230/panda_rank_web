@@ -53,7 +53,7 @@ const plans = [
     blurb: "초대·권한·감사 로그가 필요한 조직용입니다.",
     features: ["SSO 옵션", "공유 리포트", "웹훅", "전담 CSM"],
     cta: "영업팀에 문의",
-    href: "mailto:sales@example.com",
+    href: siteConfig.links.sales,
     highlighted: false,
   },
 ]

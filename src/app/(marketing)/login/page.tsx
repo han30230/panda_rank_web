@@ -60,7 +60,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">비밀번호</Label>
                 <Link
-                  href="#"
+                  href="/forgot-password"
                   className="text-primary text-xs font-medium hover:underline"
                 >
                   찾기

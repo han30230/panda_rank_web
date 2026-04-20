@@ -18,10 +18,11 @@ import { PricingSection } from "@/components/sections/pricing"
 import { UseCases } from "@/components/sections/use-cases"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { siteConfig } from "@/lib/site-config"
+import { WebsiteJsonLd } from "@/components/seo/json-ld"
+import { siteConfig, siteUrl } from "@/lib/site-config"
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
+  metadataBase: new URL(siteUrl),
   title: {
     default: `${siteConfig.name} — 키워드·콘텐츠 자동화`,
     template: `%s | ${siteConfig.name}`,
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `${siteConfig.name} — 키워드·콘텐츠 자동화`,
     description: siteConfig.description,
-    url: siteConfig.url,
+    url: siteUrl,
     siteName: siteConfig.name,
     locale: "ko_KR",
     type: "website",
@@ -47,6 +48,7 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <PublicPageShell>
+      <WebsiteJsonLd />
       <Hero />
       <SocialProofStrip />
       <BehaviorFlowSection />

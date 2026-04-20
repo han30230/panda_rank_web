@@ -9,8 +9,8 @@ const footerLinks = {
     { label: "대시보드", href: "/dashboard" },
   ],
   legal: [
-    { label: "이용약관", href: "#" },
-    { label: "개인정보처리방침", href: "#" },
+    { label: "이용약관", href: "/terms" },
+    { label: "개인정보처리방침", href: "/privacy" },
   ],
 }
 

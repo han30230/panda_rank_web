@@ -1,8 +1,8 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import { Providers } from "@/components/providers"
-import { siteConfig } from "@/lib/site-config"
+import { siteConfig, siteUrl } from "@/lib/site-config"
 
 import "./globals.css"
 
@@ -17,11 +17,23 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: siteConfig.name,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
+  applicationName: siteConfig.name,
+  formatDetection: { telephone: false, email: false },
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+  width: "device-width",
+  initialScale: 1,
 }
 
 export default function RootLayout({

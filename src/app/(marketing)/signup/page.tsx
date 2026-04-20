@@ -51,11 +51,11 @@ export default function SignupPage() {
           <div className="flex items-start gap-2">
             <Checkbox id="terms" className="mt-1" />
             <Label htmlFor="terms" className="text-muted-foreground text-xs leading-snug font-normal">
-              <Link href="#" className="text-foreground font-medium hover:underline">
+              <Link href={siteConfig.links.terms} className="text-foreground font-medium hover:underline">
                 이용약관
               </Link>
               과{" "}
-              <Link href="#" className="text-foreground font-medium hover:underline">
+              <Link href={siteConfig.links.privacy} className="text-foreground font-medium hover:underline">
                 개인정보처리방침
               </Link>
               에 동의합니다.

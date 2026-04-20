@@ -1,12 +1,20 @@
+/** 배포 URL — Vercel·GitHub Pages 등에서 `NEXT_PUBLIC_SITE_URL` 로 덮어씁니다. */
+const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") ?? ""
+export const siteUrl =
+  rawSiteUrl.length > 0 ? rawSiteUrl : "https://rankdeck.example.com"
+
 export const siteConfig = {
   name: "RankDeck",
   nameKo: "랭크덱",
   description:
     "키워드 인사이트, AI 초안, 온페이지 점검을 한 흐름으로. 데이터로 콘텐츠 의사결정을 단순화합니다.",
-  url: "https://rankdeck.example.com",
+  url: siteUrl,
   links: {
     docs: "/pricing",
     support: "mailto:support@example.com",
+    sales: "mailto:sales@example.com",
+    privacy: "/privacy",
+    terms: "/terms",
   },
 } as const
 
