@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import { AppWorkspaceSubnav } from "@/components/app/app-workspace-subnav"
 import { Sidebar } from "@/components/layout/sidebar"
 import { siteConfig } from "@/lib/site-config"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -33,6 +34,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {siteConfig.name}
           </Link>
         </div>
+        <AppWorkspaceSubnav />
         {children}
       </div>
     </div>

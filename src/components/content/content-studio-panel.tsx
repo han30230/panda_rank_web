@@ -1,13 +1,21 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import {
   Copy,
+  HelpCircle,
+  ImagePlus,
+  Loader2,
   RefreshCw,
   Save,
   Share2,
-  Pencil,
   Sparkles,
+  Wand2,
+  X,
+  ChevronRight,
+  FileText,
+  Pencil,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -21,8 +29,36 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import {
+  CONTENT_LENGTH_OPTIONS,
+  CONTENT_POST_TYPES,
+  CONTENT_TONE_PRESETS,
+  CONTENT_TRENDING_TOPICS,
+} from "@/constants/content-studio"
+import type { ReportRow } from "@/lib/report-dto"
+
+const TITLE_MAX = 50
+const KEYWORD_MAX = 5
+const IMAGE_MAX = 10
+const IMAGE_MAX_MB = 5
 
 type Phase = "idle" | "generating" | "done"
+
+function resolveTone(presetId: string, customTone: string): string {
+  if (presetId === "custom") return customTone.trim() || "정보형 · 차분"
+  const p = CONTENT_TONE_PRESETS.find((x) => x.id === presetId)
+  return p?.value ?? "정보형 · 차분"
+}
+
+function keywordStringForApi(chips: string[]): string {
+  return chips.map((c) => c.trim()).filter(Boolean).join(" · ")
+}
 
 const loadingMessages = [
   "주제·키워드에 맞는 구조를 잡는 중…",
@@ -38,6 +74,7 @@ type GeneratePayload = {
   seoHint: string
   checklist: string[]
   source: "openai" | "heuristic"
+  lengthMode: "draft" | "full"
 }
 
 function ScoreCard({
@@ -66,9 +103,13 @@ function ScoreCard({
 }
 
 export function ContentStudioPanel() {
+  const [postTypeId, setPostTypeId] = useState<string>(CONTENT_POST_TYPES[0]!.id)
   const [topic, setTopic] = useState("")
-  const [keyword, setKeyword] = useState("")
-  const [tone, setTone] = useState("정보형 · 차분")
+  const [keywordChips, setKeywordChips] = useState<string[]>([])
+  const [kwInput, setKwInput] = useState("")
+  const [tonePresetId, setTonePresetId] = useState("info-calm")
+  const [customTone, setCustomTone] = useState("")
+  const [lengthMode, setLengthMode] = useState<"draft" | "full">("draft")
   const [phase, setPhase] = useState<Phase>("idle")
   const [progress, setProgress] = useState(0)
   const [loadingIdx, setLoadingIdx] = useState(0)
@@ -79,13 +120,86 @@ export function ContentStudioPanel() {
   const [seoHint, setSeoHint] = useState("")
   const [checklist, setChecklist] = useState<string[]>([])
   const [source, setSource] = useState<"openai" | "heuristic" | null>(null)
+  const [generatedLength, setGeneratedLength] = useState<"draft" | "full" | null>(null)
   const [saving, setSaving] = useState(false)
+  const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [recentReports, setRecentReports] = useState<ReportRow[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    void fetch("/api/reports", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d: { reports?: ReportRow[] }) => {
+        const list = (d.reports ?? []).filter((x) => x.kind === "content").slice(0, 6)
+        setRecentReports(list)
+      })
+      .catch(() => {})
+  }, [])
+
+  function onPostTypeChange(id: string) {
+    setPostTypeId(id)
+    const m = CONTENT_POST_TYPES.find((p) => p.id === id)
+    if (m) setTonePresetId(m.tonePresetId)
+  }
+
+  function addKeywordChip(raw?: string) {
+    const v = (raw ?? kwInput).trim()
+    if (!v || keywordChips.length >= KEYWORD_MAX) return
+    if (keywordChips.includes(v)) {
+      setKwInput("")
+      return
+    }
+    setKeywordChips((c) => [...c, v])
+    setKwInput("")
+  }
+
+  function removeKeywordChip(i: number) {
+    setKeywordChips((c) => c.filter((_, idx) => idx !== i))
+  }
+
+  function autoFillKeywords() {
+    const parts = topic
+      .trim()
+      .split(/[\s,.·/]+/)
+      .map((w) => w.replace(/[^\w가-힣]/g, ""))
+      .filter((w) => w.length >= 2)
+    const next = [...new Set(parts)].slice(0, KEYWORD_MAX)
+    if (next.length === 0) {
+      toast.error("제목에서 추출할 키워드가 없습니다.")
+      return
+    }
+    setKeywordChips(next)
+    toast.message("제목 기준으로 키워드를 채웠습니다.")
+  }
+
+  function onImagePick(files: FileList | null) {
+    if (!files?.length) return
+    const next: File[] = [...imageFiles]
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i]!
+      if (f.size > IMAGE_MAX_MB * 1024 * 1024) {
+        toast.error(`${f.name}은(는) ${IMAGE_MAX_MB}MB를 초과합니다.`)
+        continue
+      }
+      if (!/^image\/(jpeg|jpg|png)$/i.test(f.type) && !/\.(jpe?g|png)$/i.test(f.name)) {
+        toast.error(`${f.name}: jpg, png만 지원합니다.`)
+        continue
+      }
+      if (next.length >= IMAGE_MAX) break
+      next.push(f)
+    }
+    setImageFiles(next.slice(0, IMAGE_MAX))
+  }
 
   const generate = useCallback(async () => {
     const t = topic.trim()
-    const k = keyword.trim()
-    if (!t || !k) {
-      toast.error("주제와 핵심 키워드를 모두 입력해 주세요.")
+    const kw = keywordStringForApi(keywordChips)
+    if (!t) {
+      toast.error("포스트 제목을 입력해 주세요.")
+      return
+    }
+    if (!kw) {
+      toast.error("키워드를 1개 이상 추가해 주세요. (엔터로 입력)")
       return
     }
 
@@ -100,11 +214,17 @@ export function ContentStudioPanel() {
     }, 450)
 
     try {
+      const toneResolved = resolveTone(tonePresetId, customTone)
       const res = await fetch("/api/content/generate", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: t, keyword: k, tone: tone.trim() || "정보형 · 차분" }),
+        body: JSON.stringify({
+          topic: t,
+          keyword: kw,
+          tone: toneResolved,
+          length: lengthMode,
+        }),
       })
       setProgress(100)
 
@@ -122,11 +242,13 @@ export function ContentStudioPanel() {
       setSeoHint(payload.seoHint)
       setChecklist(payload.checklist)
       setSource(payload.source)
+      setGeneratedLength(payload.lengthMode)
       setPhase("done")
+      const modeLabel = payload.lengthMode === "full" ? "전체 글" : "초안"
       toast.success(
         payload.source === "openai"
-          ? "OpenAI로 초안을 만들었습니다."
-          : "로컬 추정 모델로 초안을 만들었습니다. (OPENAI_API_KEY 없음)",
+          ? `OpenAI로 ${modeLabel}을(를) 만들었습니다.`
+          : `로컬 추정 모델로 ${modeLabel}을(를) 만들었습니다.`,
       )
     } catch (e) {
       setPhase("idle")
@@ -134,7 +256,7 @@ export function ContentStudioPanel() {
     } finally {
       window.clearInterval(tick)
     }
-  }, [topic, keyword, tone])
+  }, [topic, keywordChips, tonePresetId, customTone, lengthMode])
 
   function copyBody() {
     if (!draft) return
@@ -165,9 +287,9 @@ export function ContentStudioPanel() {
           title: topic.trim() || meta.title,
           kind: "content",
           status: "검토",
-          keyword: keyword.trim() || undefined,
+          keyword: keywordStringForApi(keywordChips) || undefined,
           summary,
-          intent: tone,
+          intent: resolveTone(tonePresetId, customTone),
           outline,
           metaTitle: meta.title,
           metaDescription: meta.desc,
@@ -197,90 +319,414 @@ export function ContentStudioPanel() {
     toast.message("메타 제목에 반영했습니다.")
   }
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
-      <Card className="surface-analytics rounded-2xl p-6 lg:col-span-5">
-        <h2 className="text-sm font-semibold">입력</h2>
-        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          주제·키워드마다 다른 초안이 생성됩니다. <code className="text-[11px]">OPENAI_API_KEY</code>가
-          있으면 OpenAI, 없으면 서버 추정 모델을 씁니다.
-        </p>
-        <div className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="topic">주제·포스트 제목</Label>
-            <Input
-              id="topic"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="예: 재택근무 집중력 끌어올리기"
-              className="rounded-xl"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="kw">핵심 키워드</Label>
-            <Input
-              id="kw"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="예: 뽀모도로"
-              className="rounded-xl"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tone">톤</Label>
-            <Input
-              id="tone"
-              value={tone}
-              onChange={(e) => setTone(e.target.value)}
-              placeholder="정보형 · 차분"
-              className="rounded-xl"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              className="inline-flex items-center justify-center gap-2 rounded-xl font-semibold shadow-sm"
-              onClick={() => void generate()}
-              disabled={phase === "generating"}
-            >
-              <Sparkles className="size-3.5 opacity-90" aria-hidden />
-              {phase === "generating" ? "생성 중…" : "초안 생성"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => {
-                setPhase("idle")
-                setDraft("")
-                setSource(null)
-              }}
-            >
-              초기화
-            </Button>
-          </div>
-        </div>
-      </Card>
+  function applyTrendQuery(q: string) {
+    const trimmed = q.trim()
+    setTopic((prev) => (prev ? prev : trimmed.slice(0, TITLE_MAX)))
+    setKeywordChips((chips) => {
+      const v = trimmed.slice(0, 40)
+      if (!v || chips.length >= KEYWORD_MAX || chips.includes(v)) return chips
+      return [...chips, v]
+    })
+  }
 
-      <Card className="surface-card overflow-hidden rounded-2xl border-border/90 p-0 lg:col-span-7">
+  const titleLen = topic.length
+
+  return (
+    <div className="space-y-6">
+      {/* 상단 툴바 느낌 */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl" aria-hidden>
+            📄
+          </span>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight">블로그 글쓰기</h2>
+            <p className="text-muted-foreground text-xs">RankDeck AI · 톤·분량·키워드 맞춤 생성</p>
+          </div>
+          <Badge variant="secondary" className="ml-1 rounded-full font-normal">
+            2.1
+          </Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground text-xs tabular-nums">오늘 생성은 대시보드에서 확인</span>
+          <Button size="sm" variant="outline" className="rounded-full text-xs" asChild>
+            <Link href="/settings/billing">크레딧</Link>
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+        {/* 왼쪽: 입력 폼 */}
+        <div className="space-y-4">
+          <Card className="border-border/80 overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div className="border-border/60 bg-muted/30 px-4 py-3">
+              <p className="text-sm font-semibold">새 글 만들기</p>
+              <p className="text-muted-foreground text-xs">유형·제목·키워드를 입력한 뒤 AI로 본문을 만듭니다.</p>
+            </div>
+            <div className="space-y-5 p-4 md:p-6">
+              <div className="space-y-2">
+                <Label htmlFor="post-type" className="flex items-center gap-1 text-sm font-medium">
+                  글 유형
+                  <HelpCircle className="text-muted-foreground size-3.5" aria-hidden />
+                </Label>
+                <select
+                  id="post-type"
+                  value={postTypeId}
+                  onChange={(e) => onPostTypeChange(e.target.value)}
+                  className={cn(
+                    "border-input bg-background h-11 w-full rounded-xl border px-3 text-sm shadow-sm",
+                    "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+                  )}
+                >
+                  {CONTENT_POST_TYPES.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="topic" className="text-sm font-medium">
+                    포스트 제목 <span className="text-emerald-600">*</span>
+                  </Label>
+                  <span
+                    className={cn(
+                      "text-xs tabular-nums",
+                      titleLen > TITLE_MAX ? "text-destructive" : "text-muted-foreground",
+                    )}
+                  >
+                    {titleLen}/{TITLE_MAX}
+                  </span>
+                </div>
+                <Input
+                  id="topic"
+                  value={topic}
+                  maxLength={TITLE_MAX}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="블로그 제목을 입력하세요"
+                  className="h-11 rounded-xl border-border/80 bg-background text-base"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="flex items-center gap-1 text-sm font-medium">
+                    키워드
+                    <HelpCircle className="text-muted-foreground size-3.5" aria-hidden />
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-primary h-7 gap-1 rounded-full px-2 text-xs font-semibold"
+                    onClick={autoFillKeywords}
+                  >
+                    <Wand2 className="size-3.5" />
+                    자동입력
+                  </Button>
+                </div>
+                <p className="text-muted-foreground text-xs">입력 후 엔터로 추가 (최대 {KEYWORD_MAX}개)</p>
+                <div className="border-input flex min-h-11 flex-wrap items-center gap-1.5 rounded-xl border bg-background px-2 py-1.5 shadow-sm">
+                  {keywordChips.map((chip, i) => (
+                    <span
+                      key={`${chip}-${i}`}
+                      className="bg-primary/12 text-primary inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    >
+                      {chip}
+                      <button
+                        type="button"
+                        className="hover:bg-primary/20 rounded-full p-0.5"
+                        onClick={() => removeKeywordChip(i)}
+                        aria-label={`${chip} 삭제`}
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    className="placeholder:text-muted-foreground min-w-[8rem] flex-1 border-0 bg-transparent px-1 py-1 text-sm outline-none"
+                    placeholder={
+                      keywordChips.length >= KEYWORD_MAX ? "최대 개수 도달" : "키워드 입력 후 Enter"
+                    }
+                    disabled={keywordChips.length >= KEYWORD_MAX}
+                    value={kwInput}
+                    onChange={(e) => setKwInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        addKeywordChip()
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">이미지 첨부 (선택)</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,.jpg,.jpeg,.png"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => onImagePick(e.target.files)}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    onImagePick(e.dataTransfer.files)
+                  }}
+                  className={cn(
+                    "border-muted-foreground/25 hover:border-primary/40 hover:bg-muted/40",
+                    "flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-10 transition-colors",
+                  )}
+                >
+                  <div className="bg-muted flex size-12 items-center justify-center rounded-full">
+                    <ImagePlus className="text-muted-foreground size-6" />
+                  </div>
+                  <p className="text-muted-foreground text-center text-xs leading-relaxed">
+                    최대 {IMAGE_MAX}장 · jpg, png (장당 최대 {IMAGE_MAX_MB}MB)
+                  </p>
+                  {imageFiles.length > 0 ? (
+                    <p className="text-primary text-xs font-medium">{imageFiles.length}개 선택됨</p>
+                  ) : null}
+                </button>
+                {imageFiles.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {imageFiles.map((f, i) => (
+                      <span
+                        key={`${f.name}-${i}`}
+                        className="bg-muted text-muted-foreground max-w-[10rem] truncate rounded-lg px-2 py-1 text-xs"
+                      >
+                        {f.name}
+                      </span>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setImageFiles([])}
+                    >
+                      전체 제거
+                    </Button>
+                  </div>
+                ) : null}
+                <p className="text-muted-foreground text-[11px]">
+                  참고용으로만 저장됩니다. 생성 본문에 자동 삽입은 추후 연동 예정입니다.
+                </p>
+              </div>
+
+              <Accordion type="single" collapsible className="border-border/60 rounded-xl border px-3">
+                <AccordionItem value="adv" className="border-0">
+                  <AccordionTrigger className="py-3 text-sm font-medium hover:no-underline">
+                    <span className="flex items-center gap-2">
+                      고급 설정
+                      <Badge variant="outline" className="font-normal">
+                        톤·분량
+                      </Badge>
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4 pb-2">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">분량</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {CONTENT_LENGTH_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setLengthMode(opt.id)}
+                              className={cn(
+                                "rounded-xl border px-3 py-2 text-left text-sm transition-colors",
+                                lengthMode === opt.id
+                                  ? "border-primary bg-primary/10 ring-1 ring-primary/25"
+                                  : "border-border/80 bg-background hover:bg-muted/50",
+                              )}
+                            >
+                              <span className="font-medium">{opt.label}</span>
+                              <span className="text-muted-foreground mt-0.5 block text-xs">
+                                {opt.description}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="tone-preset" className="text-xs font-medium">
+                          톤·스타일
+                        </Label>
+                        <select
+                          id="tone-preset"
+                          value={tonePresetId}
+                          onChange={(e) => setTonePresetId(e.target.value)}
+                          className="border-input h-10 w-full rounded-xl border px-3 text-sm"
+                        >
+                          {CONTENT_TONE_PRESETS.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.label}
+                            </option>
+                          ))}
+                          <option value="custom">직접 입력</option>
+                        </select>
+                        {tonePresetId === "custom" ? (
+                          <Input
+                            value={customTone}
+                            onChange={(e) => setCustomTone(e.target.value)}
+                            placeholder="예: 유머 있게 · 밈 활용"
+                            className="rounded-xl"
+                          />
+                        ) : null}
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="rounded-xl"
+                  aria-label="임시 저장 안내"
+                  onClick={() => toast.message("에디터에서 직접 수정한 뒤 리포트에 저장하세요.")}
+                >
+                  <FileText className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  disabled={phase === "generating"}
+                  onClick={() => void generate()}
+                  className={cn(
+                    "h-12 min-w-[200px] flex-1 rounded-xl font-semibold shadow-md transition-all",
+                    "bg-gradient-to-r from-violet-600 via-violet-600 to-fuchsia-600 text-white hover:opacity-[0.96]",
+                    "dark:from-violet-500 dark:to-fuchsia-500",
+                  )}
+                >
+                  {phase === "generating" ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      생성 중…
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 size-4" />
+                      {lengthMode === "full" ? "전체 글 생성" : "AI로 초안 생성"}
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-12 rounded-xl"
+                  onClick={() => {
+                    setPhase("idle")
+                    setDraft("")
+                    setSource(null)
+                    setGeneratedLength(null)
+                  }}
+                >
+                  초기화
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* 최근 생성 */}
+          <Card className="overflow-hidden rounded-2xl border-border/80 shadow-sm">
+            <div className="px-4 py-3">
+              <p className="text-sm font-semibold">최근 생성 글 (7일)</p>
+            </div>
+            <Link
+              href="/reports"
+              className="bg-emerald-600 hover:bg-emerald-700 flex items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-white transition-colors"
+            >
+              <span>저장된 리포트에서 노출·점수를 확인해 보세요</span>
+              <ChevronRight className="size-4 shrink-0 opacity-90" />
+            </Link>
+            <div className="flex flex-wrap gap-2 p-4 pt-3">
+              {recentReports.length === 0 ? (
+                <p className="text-muted-foreground text-xs">아직 저장된 콘텐츠 리포트가 없습니다.</p>
+              ) : (
+                recentReports.map((r) => (
+                  <Link
+                    key={r.id}
+                    href={`/reports/${r.id}`}
+                    className="border-border/70 bg-muted/40 hover:bg-muted/70 max-w-full truncate rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                  >
+                    {r.title}
+                  </Link>
+                ))
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* 오른쪽: 트렌드 */}
+        <aside className="space-y-3">
+          <Card className="border-border/80 overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div className="border-border/60 bg-gradient-to-r from-violet-600/10 to-fuchsia-600/10 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-violet-600 size-4" />
+                <p className="text-sm font-bold">실시간 트렌드 주제</p>
+              </div>
+              <p className="text-muted-foreground mt-1 text-xs">정보성 글에 어울리는 예시입니다. 클릭 시 키워드가 채워집니다.</p>
+            </div>
+            <ul className="divide-border/60 max-h-[min(70vh,520px)] divide-y overflow-y-auto">
+              {CONTENT_TRENDING_TOPICS.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => applyTrendQuery(item.query)}
+                    className="hover:bg-muted/50 flex w-full items-start gap-3 px-4 py-3 text-left transition-colors"
+                  >
+                    <span className="bg-foreground mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full">
+                      <Sparkles className="size-3.5 text-white" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="line-clamp-2 text-sm font-medium leading-snug">{item.title}</span>
+                    </span>
+                    {item.hot ? (
+                      <Badge className="shrink-0 border-0 bg-red-500 text-[10px] font-semibold text-white">
+                        급상승
+                      </Badge>
+                    ) : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </aside>
+      </div>
+
+      {/* 결과 — 전체 폭 */}
+      <Card className="surface-card overflow-hidden rounded-2xl border-border/90 p-0 shadow-sm">
         <div className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b bg-muted/25 px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold">결과</p>
+            <p className="text-sm font-semibold">생성 결과</p>
             {source ? (
-              <Badge variant="secondary" className="rounded-full font-normal">
-                {source === "openai" ? "OpenAI" : "로컬 추정"}
-              </Badge>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge variant="secondary" className="rounded-full font-normal">
+                  {source === "openai" ? "OpenAI" : "로컬 추정"}
+                </Badge>
+                <Badge variant="outline" className="rounded-full font-normal">
+                  {(generatedLength ?? lengthMode) === "full" ? "전체 글" : "초안"}
+                </Badge>
+              </div>
             ) : null}
           </div>
           {phase === "done" ? (
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                className="rounded-full"
-                onClick={copyBody}
-              >
+              <Button type="button" size="sm" variant="secondary" className="rounded-full" onClick={copyBody}>
                 <Copy className="size-3.5" />
                 복사
               </Button>
@@ -315,9 +761,10 @@ export function ContentStudioPanel() {
 
         <div className="p-4 md:p-6">
           {phase === "idle" ? (
-            <p className="text-muted-foreground text-sm">
-              왼쪽에서 주제·키워드를 입력한 뒤 초안 생성을 누르면 본문·점수·메타가 채워집니다.
-            </p>
+            <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 py-16 text-center text-sm">
+              <Sparkles className="text-muted-foreground/50 size-10" />
+              <p>위에서 제목·키워드를 입력한 뒤 보라색 버튼으로 AI 본문을 생성하세요.</p>
+            </div>
           ) : null}
 
           {phase === "generating" ? (
@@ -326,7 +773,7 @@ export function ContentStudioPanel() {
                 <p className="text-foreground text-sm font-medium">{loadingMessages[loadingIdx]}</p>
                 <Badge className="border-primary/25 bg-primary/10 font-normal text-primary inline-flex items-center gap-1">
                   <Sparkles className="size-3" aria-hidden />
-                  API 요청
+                  생성 중
                 </Badge>
               </div>
               <div className={cn("rounded-full", "ai-processing-ring")}>
@@ -345,9 +792,7 @@ export function ContentStudioPanel() {
             <div className="space-y-6">
               <div className="border-border/60 flex flex-wrap items-end justify-between gap-3 border-b pb-4">
                 <div>
-                  <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                    종합
-                  </p>
+                  <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">종합</p>
                   <p className="mt-1 text-2xl font-semibold tabular-nums">
                     <span className="text-primary">{scores.seo}</span>
                     <span className="text-muted-foreground text-lg font-normal">/100</span>
@@ -385,12 +830,7 @@ export function ContentStudioPanel() {
                       className="border-border/60 flex items-center justify-between gap-2 rounded-xl border bg-muted/30 px-3 py-2 text-sm"
                     >
                       <span className="min-w-0 flex-1">{sug}</span>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        type="button"
-                        onClick={() => applyTitleSuggestion(sug)}
-                      >
+                      <Button size="sm" variant="ghost" type="button" className="h-7 text-xs" onClick={() => applyTitleSuggestion(sug)}>
                         적용
                       </Button>
                     </li>
@@ -398,10 +838,10 @@ export function ContentStudioPanel() {
                 </ul>
               </div>
 
-              <Tabs defaultValue="draft" className="gap-0">
+              <Tabs defaultValue="body" className="gap-0">
                 <TabsList className="h-9">
-                  <TabsTrigger value="draft" className="text-xs sm:text-sm">
-                    초안
+                  <TabsTrigger value="body" className="text-xs sm:text-sm">
+                    본문
                   </TabsTrigger>
                   <TabsTrigger value="meta" className="text-xs sm:text-sm">
                     메타·요약
@@ -410,9 +850,12 @@ export function ContentStudioPanel() {
                     체크리스트
                   </TabsTrigger>
                 </TabsList>
-                <TabsContent value="draft" className="mt-4 outline-none">
+                <TabsContent value="body" className="mt-4 outline-none">
                   <Textarea
-                    className="min-h-[220px] resize-y rounded-xl font-mono text-sm"
+                    className={cn(
+                      "resize-y rounded-xl font-mono text-sm",
+                      (generatedLength ?? lengthMode) === "full" ? "min-h-[320px]" : "min-h-[220px]",
+                    )}
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                   />

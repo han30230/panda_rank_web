@@ -7,6 +7,7 @@ const bodySchema = z.object({
   topic: z.string().trim().min(1, "주제를 입력해 주세요."),
   keyword: z.string().trim().min(1, "핵심 키워드를 입력해 주세요."),
   tone: z.string().trim().optional().default("정보형 · 차분"),
+  length: z.enum(["draft", "full"]).default("draft"),
 })
 
 export async function POST(req: Request) {
@@ -22,10 +23,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 })
   }
 
-  const { topic, keyword, tone } = parsed.data
+  const { topic, keyword, tone, length } = parsed.data
 
-  const ai = await generateWithOpenAI(topic, keyword, tone)
-  const result = ai ?? heuristicGenerate(topic, keyword, tone)
+  const ai = await generateWithOpenAI(topic, keyword, tone, length)
+  const result = ai ?? heuristicGenerate(topic, keyword, tone, length)
 
   return NextResponse.json(result)
 }
