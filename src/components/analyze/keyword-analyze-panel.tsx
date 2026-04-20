@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -33,9 +34,14 @@ type AnalyzeApiResult = {
 
 type KeywordAnalyzePanelProps = {
   initialKeyword?: string | null
+  initialMode?: "keyword" | "extract"
 }
 
-export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps) {
+export function KeywordAnalyzePanel({
+  initialKeyword,
+  initialMode = "keyword",
+}: KeywordAnalyzePanelProps) {
+  const [inputTab, setInputTab] = useState<"keyword" | "extract">(initialMode)
   const [keyword, setKeyword] = useState(() => initialKeyword?.trim() ?? "")
   const [locale, setLocale] = useState("한국")
   const [lang, setLang] = useState("ko")
@@ -45,8 +51,45 @@ export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps
   const [result, setResult] = useState<AnalyzeApiResult | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const run = useCallback(async () => {
-    const q = keyword.trim()
+  const [bodyText, setBodyText] = useState("")
+  const [extractLoading, setExtractLoading] = useState(false)
+  const [extracted, setExtracted] = useState<{ term: string; count: number }[]>([])
+
+  const runExtract = useCallback(async () => {
+    const t = bodyText.trim()
+    if (!t) {
+      toast.error("본문을 붙여 넣어 주세요.")
+      return
+    }
+    setExtractLoading(true)
+    try {
+      const res = await fetch("/api/keywords/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: t, limit: 24 }),
+      })
+      const payload = (await res.json().catch(() => ({}))) as
+        | { keywords?: { term: string; count: number }[] }
+        | { error?: unknown }
+      if (!res.ok) {
+        const err =
+          typeof (payload as { error?: unknown }).error === "string"
+            ? (payload as { error: string }).error
+            : "추출에 실패했습니다."
+        throw new Error(err)
+      }
+      const list = (payload as { keywords: { term: string; count: number }[] }).keywords
+      setExtracted(Array.isArray(list) ? list : [])
+      toast.success("빈도 상위 키워드를 추출했습니다.")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "추출에 실패했습니다.")
+    } finally {
+      setExtractLoading(false)
+    }
+  }, [bodyText])
+
+  const run = useCallback(async (keywordOverride?: string) => {
+    const q = (keywordOverride ?? keyword).trim()
     if (!q) {
       setPhase("error")
       return
@@ -142,72 +185,167 @@ export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps
     toast.success("요약이 복사되었습니다.")
   }
 
+  function copyExtracted() {
+    if (!extracted.length) return
+    const text = extracted.map((h) => `${h.term}\t${h.count}`).join("\n")
+    void navigator.clipboard.writeText(text)
+    toast.success("키워드 목록을 복사했습니다.")
+  }
+
+  function analyzeWithTerm(term: string) {
+    setKeyword(term)
+    setInputTab("keyword")
+    if (phase === "error") setPhase("idle")
+    void run(term)
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
       <Card className="surface-analytics rounded-2xl p-6 lg:col-span-5">
-        <h2 className="text-sm font-semibold">분석 입력</h2>
-        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          서버 API로 분석합니다. <code className="text-[11px]">OPENAI_API_KEY</code>가 있으면
-          OpenAI, 없으면 결정적 추정값을 씁니다.
-        </p>
-        <div className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="kw">키워드</Label>
-            <Input
-              id="kw"
-              value={keyword}
-              onChange={(e) => {
-                setKeyword(e.target.value)
-                if (phase === "error") setPhase("idle")
-              }}
-              placeholder="예: 미니멀 책상 정리"
-              className="rounded-xl"
-              aria-invalid={phase === "error"}
-            />
-            {phase === "error" ? (
-              <p className="text-destructive text-xs">키워드를 입력해 주세요.</p>
-            ) : null}
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+        <Tabs
+          value={inputTab}
+          onValueChange={(v) => setInputTab(v as "keyword" | "extract")}
+          className="gap-4"
+        >
+          <TabsList className="grid h-9 w-full grid-cols-2 rounded-lg">
+            <TabsTrigger value="keyword" className="text-xs sm:text-sm">
+              키워드 분석
+            </TabsTrigger>
+            <TabsTrigger value="extract" className="text-xs sm:text-sm">
+              본문 추출
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="keyword" className="mt-0 space-y-4 outline-none">
+            <div>
+              <h2 className="text-sm font-semibold">분석 입력</h2>
+              <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                서버 API로 분석합니다. <code className="text-[11px]">OPENAI_API_KEY</code>가 있으면
+                OpenAI, 없으면 결정적 추정값을 씁니다.
+              </p>
+            </div>
             <div className="space-y-2">
-              <Label htmlFor="locale">지역</Label>
+              <Label htmlFor="kw">키워드</Label>
               <Input
-                id="locale"
-                value={locale}
-                onChange={(e) => setLocale(e.target.value)}
+                id="kw"
+                value={keyword}
+                onChange={(e) => {
+                  setKeyword(e.target.value)
+                  if (phase === "error") setPhase("idle")
+                }}
+                placeholder="예: 미니멀 책상 정리"
                 className="rounded-xl"
+                aria-invalid={phase === "error"}
+              />
+              {phase === "error" ? (
+                <p className="text-destructive text-xs">키워드를 입력해 주세요.</p>
+              ) : null}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="locale">지역</Label>
+                <Input
+                  id="locale"
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value)}
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lang">언어</Label>
+                <Input id="lang" value={lang} onChange={(e) => setLang(e.target.value)} className="rounded-xl" />
+              </div>
+            </div>
+            <Button
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl font-semibold shadow-sm"
+              disabled={phase === "loading"}
+              onClick={() => void run()}
+              type="button"
+            >
+              <Sparkles className="size-3.5 opacity-90" aria-hidden />
+              {phase === "loading" ? "분석 중…" : "분석 실행"}
+            </Button>
+            {phase === "done" && result ? (
+              <Button
+                variant="secondary"
+                className="w-full rounded-xl"
+                type="button"
+                disabled={saving}
+                onClick={() => void saveReport()}
+              >
+                <FilePlus2 className="size-3.5" />
+                {saving ? "저장 중…" : "리포트로 저장"}
+              </Button>
+            ) : null}
+            <Button variant="outline" className="w-full rounded-xl" asChild>
+              <Link href="/content/new">이 주제로 초안 만들기</Link>
+            </Button>
+          </TabsContent>
+          <TabsContent value="extract" className="mt-0 space-y-4 outline-none">
+            <div>
+              <h2 className="text-sm font-semibold">본문에서 키워드 추출</h2>
+              <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                글 전체를 붙여 넣으면 빈도 상위 단어를 뽑습니다. 형태소 분석은 하지 않습니다.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="body-extract">본문</Label>
+              <Textarea
+                id="body-extract"
+                value={bodyText}
+                onChange={(e) => setBodyText(e.target.value)}
+                placeholder="블로그 글·상세페이지 문구를 붙여 넣으세요."
+                className="min-h-[160px] rounded-xl font-mono text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="lang">언어</Label>
-              <Input id="lang" value={lang} onChange={(e) => setLang(e.target.value)} className="rounded-xl" />
-            </div>
-          </div>
-          <Button
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl font-semibold shadow-sm"
-            disabled={phase === "loading"}
-            onClick={() => void run()}
-            type="button"
-          >
-            <Sparkles className="size-3.5 opacity-90" aria-hidden />
-            {phase === "loading" ? "분석 중…" : "분석 실행"}
-          </Button>
-          {phase === "done" && result ? (
             <Button
-              variant="secondary"
-              className="w-full rounded-xl"
+              className="w-full rounded-xl font-semibold"
               type="button"
-              disabled={saving}
-              onClick={() => void saveReport()}
+              disabled={extractLoading}
+              onClick={() => void runExtract()}
             >
-              <FilePlus2 className="size-3.5" />
-              {saving ? "저장 중…" : "리포트로 저장"}
+              <Sparkles className="size-3.5 opacity-90" aria-hidden />
+              {extractLoading ? "추출 중…" : "키워드 추출"}
             </Button>
-          ) : null}
-          <Button variant="outline" className="w-full rounded-xl" asChild>
-            <Link href="/content/new">이 주제로 초안 만들기</Link>
-          </Button>
-        </div>
+            {extracted.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-muted-foreground text-xs font-medium">빈도 상위</p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-full text-xs"
+                      onClick={copyExtracted}
+                    >
+                      목록 복사
+                    </Button>
+                  </div>
+                </div>
+                <ul className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-border/80 bg-muted/20 p-3 text-sm">
+                  {extracted.map((h) => (
+                    <li
+                      key={h.term}
+                      className="flex items-center justify-between gap-2 border-b border-border/40 py-1 last:border-0"
+                    >
+                      <button
+                        type="button"
+                        className="text-left font-medium text-primary hover:underline"
+                        onClick={() => analyzeWithTerm(h.term)}
+                      >
+                        {h.term}
+                      </button>
+                      <span className="text-muted-foreground tabular-nums text-xs">{h.count}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  항목을 누르면 &ldquo;키워드 분석&rdquo; 탭으로 이동해 바로 분석합니다.
+                </p>
+              </div>
+            ) : null}
+          </TabsContent>
+        </Tabs>
       </Card>
 
       <Card className="surface-card overflow-hidden rounded-2xl border-border/90 p-0 lg:col-span-7">
@@ -327,11 +465,27 @@ export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps
               ) : null}
             </TabsContent>
             <TabsContent value="compete" className="mt-0 outline-none">
-              <p className="text-muted-foreground text-sm">
-                {phase === "done"
-                  ? "헤딩 패턴: H2에 ‘장단점’, ‘추천’이 반복됩니다. 틈새는 ‘실패 사례’입니다."
-                  : "분석 후 경쟁 스냅샷이 여기에 표시됩니다."}
-              </p>
+              {phase === "done" && result ? (
+                <div className="space-y-3 text-sm">
+                  <p>
+                    <span className="text-muted-foreground">분석 키워드 </span>
+                    <span className="font-semibold text-foreground">{keyword.trim() || "—"}</span>
+                    <span className="text-muted-foreground"> 기준으로 흔한 패턴을 가정했습니다.</span>
+                  </p>
+                  <ul className="text-muted-foreground list-inside list-disc space-y-2 leading-relaxed">
+                    <li>상위 제목에 숫자·비교·‘총정리’ 유형이 자주 섞입니다.</li>
+                    <li>H2는 스펙·가격·단점 순으로 반복되는 경우가 많습니다.</li>
+                    <li>
+                      롱테일 후보:{" "}
+                      <span className="text-foreground">{result.ideas[1] ?? result.ideas[0]}</span>
+                    </li>
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  키워드 분석을 실행하면 이 탭에 요약이 표시됩니다.
+                </p>
+              )}
             </TabsContent>
             <TabsContent value="ideas" className="mt-0 outline-none">
               {result ? (

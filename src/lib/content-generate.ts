@@ -2,6 +2,14 @@ import { createHash } from "crypto"
 
 import { z } from "zod"
 
+import type { ContentPostTypeId } from "@/constants/content-studio"
+import { charTargetForClient, resolveCharTarget } from "@/lib/content-char-target"
+import {
+  buildNaverSystemPrompt,
+  buildNaverUserAddendum,
+  buildNaverUserQualityFooter,
+} from "@/lib/naver-blog-prompts"
+
 export type ContentScores = {
   seo: number
   keywordFit: number
@@ -19,6 +27,8 @@ export type ContentGenerateResult = {
   checklist: string[]
   source: "openai" | "heuristic"
   lengthMode: ContentLengthMode
+  /** 적용된 목표 글자 수 범위(프리셋 또는 사용자 지정) */
+  charTarget?: { min: number; max: number; label: string }
 }
 
 const responseSchema = z.object({
@@ -44,36 +54,102 @@ function clampScore(n: number): number {
   return Math.max(0, Math.min(100, Math.round(n)))
 }
 
-export function heuristicGenerate(
-  topic: string,
-  keyword: string,
-  tone: string,
-  length: ContentLengthMode = "full",
-): ContentGenerateResult {
-  const t = topic.trim() || "블로그 포스트"
-  const k = keyword.trim() || "키워드"
-  const toneLabel = tone.trim() || "정보형"
-  const seed = `${t}|${k}|${toneLabel}|${length}`
-  const base = hashToInt(seed, 0)
-
-  const seo = clampScore(58 + (base % 38) + (length === "full" ? 4 : 0))
-  const keywordFit = clampScore(60 + (hashToInt(seed, 1) % 35))
-  const readability = clampScore(55 + (hashToInt(seed, 2) % 40))
-
-  const angles = [
+const HEURISTIC_ANGLES: Record<ContentPostTypeId, string[]> = {
+  informative: [
     "실천 순서와 체크리스트",
     "초보가 흔히 놓치는 포인트",
     "비용·시간 대비 효과",
     "사례와 비교 기준",
     "자주 묻는 질문",
-  ]
+  ],
+  review: [
+    "스펙·가격 비교",
+    "실사용 환경별 추천",
+    "장점과 아쉬운 점",
+    "이런 분께 추천 / 비추천",
+    "총평과 구매 결론",
+  ],
+  story: [
+    "그때의 상황",
+    "중간에 겪은 일",
+    "마음이 바뀐 순간",
+    "독자에게 전하는 팁",
+    "짧은 정리",
+  ],
+  tutorial: [
+    "준비물과 전제 조건",
+    "단계별로 따라 하기",
+    "자주 틀리는 실수",
+    "안전·주의할 점",
+    "확인·마무리",
+  ],
+  marketing: [
+    "먼저 알아두면 좋은 점",
+    "핵심 혜택과 차별점",
+    "이런 분께 맞습니다",
+    "근거와 신뢰 포인트",
+    "부담 없는 다음 행동",
+  ],
+  opinion: [
+    "내가 생각하는 핵심",
+    "왜 그렇게 보는지",
+    "다른 시각도 짚어보면",
+    "정리하면",
+    "남기고 싶은 질문",
+  ],
+  casual: [
+    "오늘의 한 장면",
+    "중간에 든 생각",
+    "소소한 발견",
+    "짧은 팁",
+    "인사로 마무리",
+  ],
+}
+
+const TYPE_TAGLINE: Record<ContentPostTypeId, string> = {
+  informative: "검색·정보를 찾는 독자에게 맞춘",
+  review: "비교와 선택을 돕기 위한",
+  story: "경험과 감정을 담은",
+  tutorial: "따라 하기 쉽게 단계를 나눈",
+  marketing: "혜택과 근거를 균형 있게 담은",
+  opinion: "주장과 근거를 분명히 한",
+  casual: "일상처럼 가볍게 읽히는",
+}
+
+/** 휴리스틱 본문에 넣는 네이버 상위 글 패턴 한 줄 */
+const NAVER_HEURISTIC_LINE =
+  "네이버 검색·블로그에서 반응이 잘 나는 글은 첫 문단에서 검색 의도를 짚고, ◆ 소제목만으로도 목차가 보이며, 문장·문단이 모바일에서 읽기 편하게 이어집니다."
+
+export function heuristicGenerate(
+  topic: string,
+  keyword: string,
+  tone: string,
+  length: ContentLengthMode = "full",
+  postType: ContentPostTypeId = "informative",
+  targetChars?: number | null,
+): ContentGenerateResult {
+  const t = topic.trim() || "블로그 포스트"
+  const k = keyword.trim() || "키워드"
+  const toneLabel = tone.trim() || "정보형"
+  const resolved = resolveCharTarget(length, targetChars)
+  const seed = `${t}|${k}|${toneLabel}|${length}|${postType}|${targetChars ?? ""}|${resolved.bucket}`
+  const base = hashToInt(seed, 0)
+
+  const seo = clampScore(58 + (base % 38) + (resolved.bucket === "full" ? 4 : 0))
+  const keywordFit = clampScore(60 + (hashToInt(seed, 1) % 35))
+  const readability = clampScore(55 + (hashToInt(seed, 2) % 40))
+
+  const angles = HEURISTIC_ANGLES[postType] ?? HEURISTIC_ANGLES.informative
   const a1 = angles[base % angles.length]!
   const a2 = angles[(base + 3) % angles.length]!
   const a3 = angles[(base + 5) % angles.length]!
+  const tag = TYPE_TAGLINE[postType] ?? TYPE_TAGLINE.informative
 
   const draftBody = `◆ 들어가며
 
-${t}에 관심 있어 이 글을 찾아주신 분들을 위해, ${toneLabel} 톤으로 핵심만 정리했습니다. 검색하신 표현 ${k}가 자연스럽게 녹아 있도록 문단을 나눴고, 블로그 에디터에 그대로 붙여 넣어도 어색하지 않게 평문 위주로 썼습니다.
+${t}에 관심 있어 이 글을 찾아주신 분들을 위해, ${tag} ${toneLabel} 톤으로 핵심만 정리했습니다. 검색하신 표현 ${k}가 자연스럽게 녹아 있도록 문단을 나눴고, 블로그 에디터에 그대로 붙여 넣어도 어색하지 않게 평문 위주로 썼습니다.
+
+${NAVER_HEURISTIC_LINE}
 
 처음에는 왜 이 주제가 요즘 자주 검색되는지, 그리고 글을 읽고 나면 무엇을 할 수 있게 되는지 짧게 짚고 넘어갑니다. 장황한 수식어보다는 문장 하나하나가 실제로 도움이 되도록 구성했습니다.
 
@@ -90,11 +166,13 @@ ${t}를 다룬 글은 결국 독자가 혼자서도 다음 행동을 정할 수 
 
   const fullBody = `◆ 들어가며
 
-안녕하세요. 오늘은 ${t}에 대해, 검색창에 ${k}를 입력하고 들어오신 분들이 궁금해할 만한 지점을 빠짐없이 짚어 보려고 합니다. 저는 이 주제를 다룰 때 항상 ${toneLabel} 톤을 기본으로 두고, 독자가 글을 끝까지 읽었을 때 실제로 손에 잡히는 결론이 남도록 쓰는 편입니다.
+안녕하세요. 오늘은 ${t}에 대해, 검색창에 ${k}를 입력하고 들어오신 분들이 궁금해할 만한 지점을 빠짐없이 짚어 보려고 합니다. 이번 글은 ${tag} 형식으로, ${toneLabel} 톤을 기본으로 두고 독자가 글을 끝까지 읽었을 때 실제로 손에 잡히는 결론이 남도록 쓰는 편입니다.
 
 블로그 글은 예쁜 문장만으로는 부족합니다. 네이버 검색에서 상위에 노출되는 글들을 보면 공통점이 있습니다. 첫째, 검색 의도를 첫 문단에서 바로 짚어 준다는 점입니다. 둘째, 소제목마다 정보의 밀도가 다르지 않고 균형이 맞는다는 점입니다. 셋째, 독자가 다음에 무엇을 하면 좋은지까지 안내한다는 점입니다. 이 글도 그 기준을 따라 ${k}를 중심으로 전개해 보겠습니다.
 
 이 글을 읽기 전에 미리 알아 두시면 좋은 것은, 같은 키워드라도 개인의 경험·예산·시간 제약에 따라 정답이 달라질 수 있다는 점입니다. 그래서 아래에서는 원칙을 먼저 제시하고, 그다음에 상황별로 조절하는 방법을 길게 풀어 쓰겠습니다. 중간중간 제가 실무에서 자주 쓰는 체크 방식도 함께 넣었습니다.
+
+${NAVER_HEURISTIC_LINE}
 
 ◆ 핵심만 먼저 짚고 가기
 
@@ -131,55 +209,74 @@ ${t}와 ${k}를 한 흐름으로 정리하면, 준비하고 실행한 뒤 점검
 긴 글을 읽어 주신 분께는 부담 없이 댓글이나 저장, 공유 중 편한 방법으로 반응을 남겨 주시면 다음 글을 쓸 때 큰 힘이 됩니다. 이상으로 ${t}와 ${k}를 중심으로 한 장문 가이드를 마칩니다. 도움이 되셨다면 이웃 추가나 이 글을 북마크해 두시고, 궁금한 점은 댓글로 남겨 주세요.
 `
 
-  const body = length === "full" ? fullBody : draftBody
+  const body = resolved.bucket === "full" ? fullBody : draftBody
+
+  const typeHint =
+    postType === "review"
+      ? "비교·총평"
+      : postType === "story"
+        ? "후기·기록"
+        : postType === "tutorial"
+          ? "단계 가이드"
+          : postType === "marketing"
+            ? "핵심 정리"
+            : postType === "opinion"
+              ? "칼럼"
+              : postType === "casual"
+                ? "일상 글"
+                : "총정리"
 
   const titleSuggestions =
-    length === "full"
+    resolved.bucket === "full"
       ? [
-          `${t} 완벽 정리 — ${k}로 읽는 장문 가이드`,
-          `${k} 중심 ${toneLabel} 톤의 ${t.slice(0, 20)}${t.length > 20 ? "…" : ""} 풀 버전`,
-          `${t} | ${k} FAQ·실전 팁까지`,
+          `${t} — ${k} ${typeHint}`,
+          `${k} 중심 ${toneLabel} 톤 ${t.slice(0, 18)}${t.length > 18 ? "…" : ""}`,
+          `${t} | ${k} 실전 팁`,
         ]
       : [
-          `${t} — ${k}로 읽는 실전 가이드`,
-          `${k} 중심으로 보는 ${t.slice(0, 24)}${t.length > 24 ? "…" : ""}`,
-          `${toneLabel} 톤의 ${k} 정리 노트`,
+          `${t} — ${k} 실전 노트`,
+          `${k}로 보는 ${t.slice(0, 22)}${t.length > 22 ? "…" : ""}`,
+          `${toneLabel} 톤 ${k} 요약`,
         ]
 
   return {
     body,
     meta: {
       title:
-        length === "full"
+        resolved.bucket === "full"
           ? `${t} | ${k} 완성형 가이드`
           : `${t} | ${k} 핵심 정리`,
       description:
-        length === "full"
+        resolved.bucket === "full"
           ? `${k}와 ${t}를 ${toneLabel} 톤으로 풀 분량 정리했습니다. 단계별 설명·FAQ·실무 팁을 포함합니다.`
           : `${k}를 중심으로 ${t}를 ${toneLabel} 톤으로 요약했습니다. 단계별 설명과 체크 포인트를 포함합니다.`,
     },
     titleSuggestions,
     scores: { seo, keywordFit, readability },
-    seoHint: `「${k}」가 제목·첫 문단·각 소제목 첫 문장에 고르게 분포하도록 조정하면 점수가 안정됩니다.${
-      length === "full" ? " 전체 글은 소제목 수·체류 시간 지표도 챙기세요." : ""
+    seoHint: `「${k}」를 제목·첫 150자·◆ 소제목 첫 문장에 자연스럽게 분산하고, 같은 말 반복 대신 동의어·질문형으로 변주하세요.${
+      resolved.bucket === "full"
+        ? " 전체 글은 소제목 5개 이상·문단 밀도로 체류 시간을 챙기면 네이버 블로그에서 유리합니다."
+        : " 초안이라도 첫 문단에 검색 의도가 드러나게 쓰면 발행 후 다듬기 쉽습니다."
     }`,
     checklist:
-      length === "full"
+      resolved.bucket === "full"
         ? [
-            "첫 문단에 핵심 키워드·주제 문장",
-            "◆ 또는 ■로 소제목 5개 이상, 문단별로 충분한 설명",
-            "FAQ 또는 실무 팁을 평문 서술로 포함",
-            "내부·외부 링크와 이미지 alt 정리",
-            "마지막에 가벼운 행동 유도 문장",
+            "첫 문단 2~5문장 안에 검색 의도·핵심 키워드(또는 자연스러운 동의어)",
+            "◆ 또는 ■ 소제목 5개 이상·각 소제목 아래 문단 3문장 이상(모바일 가독)",
+            "숫자·조건·예시·주의사항 등 정보 밀도(빈 말 반복 금지)",
+            "질문형 소제목 또는 Q&A 1회 이상(주제에 맞을 때)",
+            "메타 제목·설명이 본문과 같은 약속을 하도록 정리",
+            "마지막에 요약·가벼운 댓글·저장 유도 한 번",
           ]
         : [
-            "첫 문단에 핵심 키워드 포함",
-            "◆ 소제목 3개 이상으로 구조 정리",
+            "첫 문단에 검색 의도·핵심 키워드가 드러나게",
+            "◆ 소제목 3개 이상으로 뼈대 정리",
             "문장 길이 혼합(짧은 문장 + 설명)",
-            "이미지·링크 alt에 키워드 변형",
+            "발행 전 이미지·링크 넣을 자리는 문단 사이 빈 줄로 표시",
           ],
     source: "heuristic",
     lengthMode: length,
+    charTarget: charTargetForClient(resolved),
   }
 }
 
@@ -188,16 +285,19 @@ export async function generateWithOpenAI(
   keyword: string,
   tone: string,
   length: ContentLengthMode = "full",
+  postType: ContentPostTypeId = "informative",
+  targetChars?: number | null,
 ): Promise<ContentGenerateResult | null> {
   const key = process.env.OPENAI_API_KEY?.trim()
   if (!key) return null
 
   const model = process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini"
 
-  const lengthInstruction =
-    length === "full"
-      ? `분량·깊이: 전체 글(완성형). 한국어 기준 약 5,000자~9,000자 이상. 네이버 검색 상위권에 올라올 만한 글처럼 사례·비교·주의점·실무 팁·실수 방지·FAQ를 빠짐없이 풀어 쓰세요. 한 소제목마다 여러 문단으로 구체적으로 서술하고, 독자가 복사만 해서 에디터에 붙여도 어색하지 않은 완성도를 목표로 하세요.`
-      : `분량·깊이: 초안이지만 복붙 가능한 평문. 한국어 기준 약 1,500~2,800자. 핵심 구조와 실행 포인트 위주로, ◆ 소제목 3개 이상으로 구분하세요.`
+  const resolved = resolveCharTarget(length, targetChars)
+  const lengthInstruction = resolved.summary
+
+  const systemPrompt = buildNaverSystemPrompt(postType, resolved)
+  const typeAddendum = buildNaverUserAddendum(postType)
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -207,27 +307,17 @@ export async function generateWithOpenAI(
     },
     body: JSON.stringify({
       model,
-      temperature: 0.72,
+      temperature: 0.66,
+      max_tokens: 14_000,
       response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
-          content: `You are a top-tier Korean blogger who consistently ranks well on Naver search. Write in natural, fluent Korean as if for direct paste into the Naver blog editor.
-
-Output valid JSON only. Keys:
-- body: string — Plain Korean prose only. Do NOT use Markdown: no asterisks for bold, no # headings, no backticks, no bullet lists with - or * (use numbered lines like 1) 2) or ① ② if lists are needed, or write as flowing sentences). Section titles: one line starting with fullwidth ◆ or ■ at column 0 (example: "◆ 핵심만 정리해 보면"), then blank line, then paragraphs. Separate paragraphs with blank lines. Write like a human expert: long, detailed, concrete, with nuance, examples, and reader guidance. Sound authoritative but friendly.
-- metaTitle: string (under 60 chars Korean)
-- metaDescription: string (under 160 chars Korean)
-- titleSuggestions: string[] (exactly 3 title ideas)
-- scores: { seo: number, keywordFit: number, readability: number } (integers 0-100)
-- seoHint: string (one short Korean sentence for the author)
-- checklist: string[] (${length === "full" ? "5-7" : "3-5"} Korean checklist items)
-
-Strictly follow the user's length and depth instructions for the body.`,
+          content: systemPrompt,
         },
         {
           role: "user",
-          content: `주제(포스트 제목): ${topic}\n핵심 키워드: ${keyword}\n톤·스타일: ${tone}\n\n${lengthInstruction}\n\n위 입력에 맞춰 블로그 본문을 작성하세요. 주제·키워드·톤이 바뀔 때마다 내용은 완전히 달라야 합니다.\n\n복붙용 요구: 에디터에 붙이면 기호·마크다운 덩어리 없이 읽히는 평문 위주로, ◆ 소제목과 빈 줄로 문단만 구분하세요. 별표·해시·코드블록은 쓰지 마세요. FAQ는 질문과 답을 각각 별도 문단으로 자연스럽게 서술하세요.`,
+          content: `주제(포스트 제목): ${topic}\n핵심 키워드: ${keyword}\n톤·스타일: ${tone}\n선택한 글 유형 ID: ${postType}\n\n${lengthInstruction}\n\n위 입력에 맞춰 네이버 블로그 본문을 작성하세요. 주제·키워드·톤·글 유형이 바뀔 때마다 내용과 구조는 완전히 달라야 합니다.\n\n${typeAddendum}\n\n복붙용 요구: 에디터에 붙이면 기호·마크다운 덩어리 없이 읽히는 평문 위주로, ◆ 또는 ■ 소제목과 빈 줄로 문단만 구분하세요. 별표·해시·코드블록은 쓰지 마세요. FAQ가 필요하면 질문과 답을 각각 별도 문단으로 자연스럽게 서술하세요.\n\n${buildNaverUserQualityFooter()}`,
         },
       ],
     }),
@@ -269,5 +359,6 @@ Strictly follow the user's length and depth instructions for the body.`,
     checklist: v.checklist,
     source: "openai",
     lengthMode: length,
+    charTarget: charTargetForClient(resolved),
   }
 }

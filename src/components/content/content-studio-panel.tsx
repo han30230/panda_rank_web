@@ -41,6 +41,7 @@ import {
   CONTENT_TONE_PRESETS,
   type TrendingTopicItem,
 } from "@/constants/content-studio"
+import { TARGET_CHARS_MAX, TARGET_CHARS_MIN } from "@/lib/content-char-target"
 import type { ReportRow } from "@/lib/report-dto"
 
 /** 네이버 블로그 제목 길이에 맞춤 (트렌드 예시·긴 제목 허용) */
@@ -94,6 +95,7 @@ type GeneratePayload = {
   checklist: string[]
   source: "openai" | "heuristic"
   lengthMode: "draft" | "full"
+  charTarget?: { min: number; max: number; label: string }
 }
 
 function ScoreCard({
@@ -129,6 +131,7 @@ export function ContentStudioPanel() {
   const [tonePresetId, setTonePresetId] = useState("info-calm")
   const [customTone, setCustomTone] = useState("")
   const [lengthMode, setLengthMode] = useState<"draft" | "full">("full")
+  const [targetCharsInput, setTargetCharsInput] = useState("")
   const [phase, setPhase] = useState<Phase>("idle")
   const [progress, setProgress] = useState(0)
   const [loadingIdx, setLoadingIdx] = useState(0)
@@ -140,6 +143,11 @@ export function ContentStudioPanel() {
   const [checklist, setChecklist] = useState<string[]>([])
   const [source, setSource] = useState<"openai" | "heuristic" | null>(null)
   const [generatedLength, setGeneratedLength] = useState<"draft" | "full" | null>(null)
+  const [appliedCharTarget, setAppliedCharTarget] = useState<{
+    min: number
+    max: number
+    label: string
+  } | null>(null)
   const [saving, setSaving] = useState(false)
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [recentReports, setRecentReports] = useState<ReportRow[]>([])
@@ -246,6 +254,7 @@ export function ContentStudioPanel() {
     setLoadingIdx(0)
     setDraft("")
     setSource(null)
+    setAppliedCharTarget(null)
     const tick = window.setInterval(() => {
       setProgress((p) => Math.min(90, p + 12))
       setLoadingIdx((i) => (i + 1) % loadingMessages.length)
@@ -253,16 +262,28 @@ export function ContentStudioPanel() {
 
     try {
       const toneResolved = resolveTone(tonePresetId, customTone)
+      const rawTarget = targetCharsInput.trim()
+      const parsedTarget = rawTarget === "" ? NaN : Number.parseInt(rawTarget, 10)
+      const payloadBody: Record<string, unknown> = {
+        topic: t,
+        keyword: kw,
+        tone: toneResolved,
+        length: lengthMode,
+        postType: postTypeId,
+      }
+      if (
+        Number.isFinite(parsedTarget) &&
+        parsedTarget >= TARGET_CHARS_MIN &&
+        parsedTarget <= TARGET_CHARS_MAX
+      ) {
+        payloadBody.targetChars = parsedTarget
+      }
+
       const res = await fetch("/api/content/generate", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic: t,
-          keyword: kw,
-          tone: toneResolved,
-          length: lengthMode,
-        }),
+        body: JSON.stringify(payloadBody),
       })
       setProgress(100)
 
@@ -281,6 +302,7 @@ export function ContentStudioPanel() {
       setChecklist(payload.checklist)
       setSource(payload.source)
       setGeneratedLength(payload.lengthMode)
+      setAppliedCharTarget(payload.charTarget ?? null)
       setPhase("done")
       const modeLabel = payload.lengthMode === "full" ? "전체 글" : "초안"
       toast.success(
@@ -294,7 +316,7 @@ export function ContentStudioPanel() {
     } finally {
       window.clearInterval(tick)
     }
-  }, [topic, keywordChips, tonePresetId, customTone, lengthMode])
+  }, [topic, keywordChips, tonePresetId, customTone, lengthMode, postTypeId, targetCharsInput])
 
   function copyBody() {
     if (!draft) return
@@ -377,7 +399,9 @@ export function ContentStudioPanel() {
           </span>
           <div>
             <h2 className="text-lg font-bold tracking-tight">블로그 글쓰기</h2>
-            <p className="text-muted-foreground text-xs">RankDeck AI · 톤·분량·키워드 맞춤 생성</p>
+            <p className="text-muted-foreground text-xs">
+              네이버 검색·블로그에 맞춘 구조·메타·본문 (의도·밀도·가독성)
+            </p>
           </div>
           <Badge variant="secondary" className="ml-1 rounded-full font-normal">
             2.1
@@ -397,7 +421,9 @@ export function ContentStudioPanel() {
           <Card className="border-border/80 overflow-hidden rounded-2xl border bg-card shadow-sm">
             <div className="border-border/60 bg-muted/30 px-4 py-3">
               <p className="text-sm font-semibold">새 글 만들기</p>
-              <p className="text-muted-foreground text-xs">유형·제목·키워드를 입력한 뒤 AI로 본문을 만듭니다.</p>
+              <p className="text-muted-foreground text-xs">
+                유형·제목·키워드 입력 후 생성. 상위 노출에 가까운 패턴(첫 문단·◆목차·밀도)을 반영합니다.
+              </p>
             </div>
             <div className="space-y-5 p-4 md:p-6">
               <div className="space-y-2">
@@ -420,6 +446,9 @@ export function ContentStudioPanel() {
                     </option>
                   ))}
                 </select>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  선택한 유형마다 네이버 블로그용 AI 지시(역할·구성·톤)가 다르게 적용됩니다.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -463,7 +492,12 @@ export function ContentStudioPanel() {
                     자동입력
                   </Button>
                 </div>
-                <p className="text-muted-foreground text-xs">입력 후 엔터로 추가 (최대 {KEYWORD_MAX}개)</p>
+                <p className="text-muted-foreground flex items-center justify-between gap-2 text-xs">
+                  <span>입력 후 엔터로 추가</span>
+                  <span className="tabular-nums">
+                    {keywordChips.length}/{KEYWORD_MAX}
+                  </span>
+                </p>
                 <div className="border-input flex min-h-11 flex-wrap items-center gap-1.5 rounded-xl border bg-background px-2 py-1.5 shadow-sm">
                   {keywordChips.map((chip, i) => (
                     <span
@@ -567,7 +601,7 @@ export function ContentStudioPanel() {
                     <span className="flex items-center gap-2">
                       고급 설정
                       <Badge variant="outline" className="font-normal">
-                        톤·분량
+                        분량·글자수·톤
                       </Badge>
                     </span>
                   </AccordionTrigger>
@@ -595,6 +629,32 @@ export function ContentStudioPanel() {
                             </button>
                           ))}
                         </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="target-chars" className="text-xs font-medium">
+                          목표 글자 수 (선택)
+                        </Label>
+                        <Input
+                          id="target-chars"
+                          type="number"
+                          min={TARGET_CHARS_MIN}
+                          max={TARGET_CHARS_MAX}
+                          step={100}
+                          inputMode="numeric"
+                          placeholder={
+                            lengthMode === "full"
+                              ? "비우면 전체 글 기준(약 5,000~9,000자)"
+                              : "비우면 초안 기준(약 1,500~2,800자)"
+                          }
+                          value={targetCharsInput}
+                          onChange={(e) => setTargetCharsInput(e.target.value)}
+                          className="h-10 rounded-xl"
+                        />
+                        <p className="text-muted-foreground text-[11px] leading-relaxed">
+                          숫자를 넣으면 초안/전체 설정보다 <strong className="font-medium text-foreground">우선</strong>
+                          합니다. 허용 {TARGET_CHARS_MIN.toLocaleString()}~
+                          {TARGET_CHARS_MAX.toLocaleString()}자.
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="tone-preset" className="text-xs font-medium">
@@ -777,6 +837,11 @@ export function ContentStudioPanel() {
                 <Badge variant="outline" className="rounded-full font-normal">
                   {(generatedLength ?? lengthMode) === "full" ? "전체 글" : "초안"}
                 </Badge>
+                {appliedCharTarget ? (
+                  <Badge variant="outline" className="rounded-full font-normal tabular-nums">
+                    {appliedCharTarget.label}
+                  </Badge>
+                ) : null}
               </div>
             ) : null}
           </div>

@@ -28,13 +28,13 @@ export const quickActions: QuickAction[] = [
   },
   {
     id: "compare",
-    href: "/workspace/new",
+    href: "/compare",
     label: "URL·글 비교",
-    description: "새 작업에서 선택",
+    description: "두 본문 겹침·유사도",
   },
   {
     id: "extract",
-    href: "/analyze/keyword",
+    href: "/analyze/keyword?mode=extract",
     label: "키워드 추출",
     description: "본문 붙여넣기",
   },

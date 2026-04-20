@@ -7,5 +7,13 @@ import { KeywordAnalyzePanel } from "@/components/analyze/keyword-analyze-panel"
 export function KeywordAnalyzeView() {
   const searchParams = useSearchParams()
   const q = searchParams.get("q")
-  return <KeywordAnalyzePanel key={q ?? ""} initialKeyword={q} />
+  const mode = searchParams.get("mode")
+  const initialMode = mode === "extract" ? "extract" : "keyword"
+  return (
+    <KeywordAnalyzePanel
+      key={`${q ?? ""}-${initialMode}`}
+      initialKeyword={q}
+      initialMode={initialMode}
+    />
+  )
 }

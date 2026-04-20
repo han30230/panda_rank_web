@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { FileEdit, ScanSearch, Sparkles } from "lucide-react"
+import { FileEdit, FileText, GitCompareArrows, ScanSearch, Sparkles } from "lucide-react"
 
 import { AppHeader } from "@/components/app/app-header"
 import { Card } from "@/components/ui/card"
@@ -10,6 +10,18 @@ const tiles = [
     title: "키워드·주제 분석",
     body: "의도와 각도를 먼저 고릅니다.",
     icon: ScanSearch,
+  },
+  {
+    href: "/analyze/keyword?mode=extract",
+    title: "본문에서 키워드 추출",
+    body: "글을 붙여 넣고 빈도 상위 단어를 봅니다.",
+    icon: FileText,
+  },
+  {
+    href: "/compare",
+    title: "본문 비교",
+    body: "두 글의 단어 겹침과 유사도를 계산합니다.",
+    icon: GitCompareArrows,
   },
   {
     href: "/content/new",
