@@ -49,38 +49,46 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.99 0.005 250);
+  --foreground: oklch(0.2 0.03 250);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.2 0.03 250);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.2 0.03 250);
+  /* Trust-forward teal primary */
+  --primary: oklch(0.52 0.12 175);
+  --primary-foreground: oklch(0.99 0.01 175);
+  --secondary: oklch(0.96 0.01 250);
+  --secondary-foreground: oklch(0.25 0.03 250);
+  --muted: oklch(0.96 0.01 250);
+  --muted-foreground: oklch(0.48 0.02 250);
+  /* Warm accent for promos & highlights */
+  --accent: oklch(0.94 0.06 85);
+  --accent-foreground: oklch(0.32 0.07 75);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: oklch(0.9 0.01 250);
+  --input: oklch(0.9 0.01 250);
+  --ring: oklch(0.52 0.12 175);
+  --chart-1: oklch(0.52 0.12 175);
+  --chart-2: oklch(0.72 0.14 75);
+  --chart-3: oklch(0.55 0.04 250);
+  --chart-4: oklch(0.6 0.1 145);
+  --chart-5: oklch(0.5 0.08 290);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.99 0.005 250);
+  --sidebar-foreground: oklch(0.2 0.03 250);
+  --sidebar-primary: oklch(0.52 0.12 175);
+  --sidebar-primary-foreground: oklch(0.99 0.01 175);
+  --sidebar-accent: oklch(0.96 0.01 250);
+  --sidebar-accent-foreground: oklch(0.25 0.03 250);
+  --sidebar-border: oklch(0.9 0.01 250);
+  --sidebar-ring: oklch(0.52 0.12 175);
+  /* Layout / elevation — components @layer 에서 참조 */
+  --section-py: clamp(4.25rem, 9vw, 7.5rem);
+  --section-py-tight: clamp(3rem, 5vw, 4.75rem);
+  --app-content-max: 72rem;
+  --shadow-card: 0 1px 2px oklch(0.2 0.02 250 / 0.04),
+    0 4px 12px oklch(0.2 0.02 250 / 0.06);
 }
 
 .dark {
@@ -126,5 +134,52 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  /* 고정 폭 + 좌우 안전 영역 — 모든 마케팅 섹션 공통 */
+  .marketing-container {
+    @apply mx-auto w-full max-w-7xl px-4 md:px-6 lg:px-8;
+  }
+  /* 섹션 수직 동역학 — ‘빽빽한 카드’ 방지용 */
+  .section-y {
+    padding-top: var(--section-py);
+    padding-bottom: var(--section-py);
+  }
+  .section-y-tight {
+    padding-top: var(--section-py-tight);
+    padding-bottom: var(--section-py-tight);
+  }
+  /* 카드: 업무 SaaS용 은은한 입체감 (무료 템플릿 그라데이션 지양) */
+  .surface-card {
+    @apply rounded-2xl border border-border/80 bg-card shadow-sm;
+    box-shadow: var(--shadow-card);
+  }
+  /* 텍스트 위계 — 제목/리드 구분 강화 */
+  .text-eyebrow {
+    @apply text-primary text-[11px] font-semibold tracking-[0.12em] uppercase;
+  }
+  .text-display {
+    @apply text-foreground text-[2rem] font-semibold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl;
+  }
+  .text-title {
+    @apply text-foreground text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl;
+  }
+  .text-title-sm {
+    @apply text-foreground text-xl font-semibold tracking-tight md:text-2xl;
+  }
+  .text-lead {
+    @apply text-muted-foreground text-base leading-relaxed md:text-lg;
+  }
+  .text-body {
+    @apply text-foreground/95 text-sm leading-relaxed md:text-[15px];
+  }
+  .text-caption {
+    @apply text-muted-foreground text-xs leading-relaxed;
+  }
+  /* 앱 작업 영역 — 한 눈에 ‘한 작업 공간’ */
+  .app-content-shell {
+    @apply mx-auto w-full max-w-[var(--app-content-max)] px-4 pb-10 pt-2 md:px-6 md:pb-12 md:pt-4;
   }
 }
