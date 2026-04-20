@@ -11,7 +11,7 @@ const behaviors = [
     icon: Search,
     title: "키워드를 넣고",
     body: "연관 검색어와 질문형 쿼리를 자동완성처럼 띄워 각도를 고릅니다.",
-    action: { label: "데모로 10초 체험", href: "/signup" },
+    action: { label: "데모로 10초 체험", href: "/dashboard" },
   },
   {
     icon: LineChart,

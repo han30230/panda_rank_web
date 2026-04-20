@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react"
 import { OauthButtons } from "@/components/auth/oauth-buttons"
 import { SignupForm } from "@/components/auth/signup-form"
 import { useAuth } from "@/contexts/auth-context"
+import { isGuestUser } from "@/lib/local-auth"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -19,7 +20,7 @@ function SignupAlreadyLoggedInGate({ children }: { children: React.ReactNode }) 
     if (!ready) return
     if (checked.current) return
     checked.current = true
-    if (user) {
+    if (user && !isGuestUser(user)) {
       router.replace("/dashboard")
     }
   }, [ready, user, router])
@@ -34,7 +35,7 @@ function SignupAlreadyLoggedInGate({ children }: { children: React.ReactNode }) 
       </div>
     )
   }
-  if (user) {
+  if (user && !isGuestUser(user)) {
     return (
       <div className="text-muted-foreground mt-6 text-center text-sm">이동 중…</div>
     )

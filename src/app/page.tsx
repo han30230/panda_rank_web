@@ -5,6 +5,7 @@ import { BehaviorFlowSection } from "@/components/landing/behavior-flow-section"
 import { CtaBanner } from "@/components/landing/cta-banner"
 import { DashboardPreviewSection } from "@/components/landing/dashboard-preview-section"
 import { LandingMidCta } from "@/components/landing/landing-mid-cta"
+import { ProductTourSection } from "@/components/landing/product-tour-section"
 import { SocialProofStrip } from "@/components/landing/social-proof-strip"
 import { TrustStatsSection } from "@/components/landing/trust-stats-section"
 import { WorkflowSection } from "@/components/landing/workflow-section"
@@ -57,28 +58,11 @@ export default function HomePage() {
       <LandingMidCta
         heading="내 사이트에 맞는 워크플로를 골라 보세요"
         description="온보딩에서 목표만 고르면 대시보드 추천과 메뉴 순서가 정돈됩니다."
-        primary={{ label: "무료로 시작", href: "/signup" }}
+        primary={{ label: "무료로 시작", href: "/dashboard" }}
         secondary={{ label: "플랜·한도 비교", href: "/pricing" }}
       />
       <UseCases />
-      <MarketingSection>
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
-          <div>
-            <SectionHeader
-              align="start"
-              eyebrow="프로덕트"
-              title="제품 투어·영상은 이 영역에"
-              description="Loom·YouTube 임베드 또는 대화형 데모로 ‘첫 가치 체험까지의 시간’을 보여 주면 전환율이 안정됩니다."
-            />
-            <Button className="mt-8 h-11 rounded-full px-7 font-medium" variant="outline" asChild>
-              <Link href="/signup">데모 요청하기</Link>
-            </Button>
-          </div>
-          <Card className="surface-card flex aspect-video items-center justify-center rounded-[1.25rem] border-dashed border-border/70 p-10 text-center">
-            <p className="text-muted-foreground text-sm leading-relaxed">영상 또는 인터랙티브 데모 슬롯</p>
-          </Card>
-        </div>
-      </MarketingSection>
+      <ProductTourSection />
       <TrustStatsSection />
       <MarketingSection variant="band">
         <SectionHeader

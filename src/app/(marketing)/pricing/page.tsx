@@ -28,7 +28,7 @@ const plans = [
     blurb: "개인 크리에이터가 흐름을 익히기에 충분합니다.",
     features: ["월 20회 분석", "크레딧 300", "단일 워크스페이스", "이메일 지원"],
     cta: "시작하기",
-    href: "/signup",
+    href: "/dashboard",
     highlighted: false,
   },
   {
@@ -43,7 +43,7 @@ const plans = [
       "우선 응답",
     ],
     cta: "7일 무료 체험",
-    href: "/signup?plan=pro",
+    href: "/dashboard?plan=pro",
     highlighted: true,
   },
   {

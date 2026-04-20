@@ -19,7 +19,7 @@ export const pricingPlans: PricingPlan[] = [
     price: "₩0",
     priceSuffix: "/월",
     features: ["월 분석 20회", "생성 크레딧 월 300", "1인", "이메일 지원"],
-    cta: { label: "무료로 시작", href: "/signup" },
+    cta: { label: "무료로 시작", href: "/dashboard" },
   },
   {
     id: "pro",
@@ -34,7 +34,7 @@ export const pricingPlans: PricingPlan[] = [
       "팀원 5명",
       "우선 지원",
     ],
-    cta: { label: "7일 무료 체험", href: "/signup" },
+    cta: { label: "7일 무료 체험", href: "/dashboard" },
   },
   {
     id: "team",

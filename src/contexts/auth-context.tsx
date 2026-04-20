@@ -11,8 +11,7 @@ import {
 } from "react"
 
 import {
-  clearPersistedSession,
-  clearSessionCookie,
+  GUEST_USER,
   loginLocalUser,
   persistSession,
   readSessionFromCookie,
@@ -46,6 +45,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       startTransition(() => {
         setUser(resolved)
       })
+    } else {
+      persistSession(GUEST_USER)
+      setSessionCookie(GUEST_USER)
+      startTransition(() => {
+        setUser(GUEST_USER)
+      })
     }
     startTransition(() => {
       setReady(true)
@@ -70,9 +75,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 
   const logout = useCallback(() => {
-    setUser(null)
-    clearPersistedSession()
-    clearSessionCookie()
+    setUser(GUEST_USER)
+    persistSession(GUEST_USER)
+    setSessionCookie(GUEST_USER)
   }, [])
 
   const value = useMemo(

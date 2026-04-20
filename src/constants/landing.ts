@@ -8,7 +8,7 @@ export const heroContent = {
   titleLines: ["네이버형 콘텐츠에 맞춘", "키워드·SEO·초안 워크스페이스"] as const,
   description:
     "검색 의도부터 초안까지 한 흐름으로 묶었습니다. 처음이어도 단계가 보이도록 안내합니다.",
-  primaryCta: { label: "7일 무료로 시작", href: "/signup" },
+  primaryCta: { label: "바로 시작", href: "/dashboard" },
   secondaryCta: { label: "플랜 비교", href: "/pricing" },
   sampleKeywords: ["연말 선물 세트", "로컬 맛집 후기", "재택 근무 생산성"] as const,
   preview: {
@@ -69,7 +69,7 @@ export const heroQuickTools: HeroQuickToolItem[] = [
   {
     id: "ai-image",
     label: "AI 이미지",
-    href: "/signup?intent=ai-image",
+    href: "/content/new",
     icon: "image",
     colorClass: "bg-violet-500/15 text-violet-700 ring-violet-500/20",
     badge: "new",
@@ -77,7 +77,7 @@ export const heroQuickTools: HeroQuickToolItem[] = [
   {
     id: "shopping-connect",
     label: "쇼핑커넥트",
-    href: "/signup?intent=shopping-connect",
+    href: "/dashboard",
     icon: "shoppingBag",
     colorClass: "bg-emerald-600/15 text-emerald-800 ring-emerald-600/25",
     badge: "new",
@@ -85,28 +85,28 @@ export const heroQuickTools: HeroQuickToolItem[] = [
   {
     id: "blog-rank",
     label: "블로그순위",
-    href: "/signup?intent=blog-rank",
+    href: "/reports",
     icon: "barChart3",
     colorClass: "bg-orange-500/15 text-orange-700 ring-orange-500/20",
   },
   {
     id: "product-review",
     label: "제품체험단",
-    href: "/signup?intent=review",
+    href: "/dashboard",
     icon: "gift",
     colorClass: "bg-pink-500/15 text-pink-700 ring-pink-500/20",
   },
   {
     id: "product-rank",
     label: "상품순위",
-    href: "/signup?intent=product-rank",
+    href: "/analyze/keyword",
     icon: "trophy",
     colorClass: "bg-amber-500/15 text-amber-800 ring-amber-500/25",
   },
   {
     id: "product-analysis",
     label: "상품분석",
-    href: "/signup?intent=product-analysis",
+    href: "/analyze/keyword",
     icon: "shoppingCart",
     colorClass: "bg-red-500/15 text-red-700 ring-red-500/20",
   },
@@ -227,7 +227,7 @@ export const landingPricingTeasers = [
     period: "/월",
     description: "개인 크리에이터·검증용",
     highlights: ["월 분석 20회", "생성 크레딧 소량", "1인 워크스페이스"],
-    cta: { label: "시작하기", href: "/signup" },
+    cta: { label: "시작하기", href: "/dashboard" },
     featured: false,
   },
   {
@@ -237,7 +237,7 @@ export const landingPricingTeasers = [
     period: "/월",
     description: "성장하는 팀에 맞춘 기본 플랜",
     highlights: ["월 분석 무제한(공정 사용)", "팀 초대 5명", "리포트 버전 관리"],
-    cta: { label: "7일 체험", href: "/signup" },
+    cta: { label: "7일 체험", href: "/dashboard" },
     featured: true,
   },
   {

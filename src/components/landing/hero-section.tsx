@@ -25,7 +25,7 @@ export function HeroSection() {
     e.preventDefault()
     const q = query.trim()
     if (!q) return
-    router.push(`/signup?intent=analyze&q=${encodeURIComponent(q)}`)
+    router.push(`/analyze/keyword?q=${encodeURIComponent(q)}`)
   }
 
   return (
@@ -51,7 +51,7 @@ export function HeroSection() {
               className="h-12 rounded-full px-9 text-base font-semibold shadow-[0_4px_16px_-2px_oklch(0.52_0.12_175/0.4)]"
               asChild
             >
-              <Link href="/signup">
+              <Link href="/dashboard">
                 7일 무료로 시작
                 <ArrowUpRight className="size-4" />
               </Link>
@@ -161,7 +161,7 @@ export function HeroSection() {
               </div>
             </div>
             <Button variant="ghost" size="sm" className="mt-4 h-auto px-0 font-medium" asChild>
-              <Link href="/signup">
+              <Link href="/analyze/keyword">
                 내 키워드로 같은 화면 보기
                 <ArrowUpRight className="size-4" />
               </Link>

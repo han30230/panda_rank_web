@@ -7,7 +7,6 @@ import { ArrowUpRight, Key, Plus, Search, Sparkles } from "lucide-react"
 import { useState } from "react"
 
 import { HeroQuickTools } from "@/components/sections/hero-quick-tools"
-import { useAuth } from "@/contexts/auth-context"
 import {
   heroContent,
   heroPromo,
@@ -21,7 +20,6 @@ import { Input } from "@/components/ui/input"
 
 export function Hero() {
   const router = useRouter()
-  const { user, ready } = useAuth()
   const [mode, setMode] = useState<"creator" | "seller">("creator")
   const [query, setQuery] = useState("")
 
@@ -29,11 +27,7 @@ export function Hero() {
     e.preventDefault()
     const q = query.trim()
     if (!q) return
-    if (ready && user) {
-      router.push(`/analyze/keyword?q=${encodeURIComponent(q)}`)
-      return
-    }
-    router.push(`/signup?intent=analyze&q=${encodeURIComponent(q)}`)
+    router.push(`/analyze/keyword?q=${encodeURIComponent(q)}`)
   }
 
   return (
@@ -79,7 +73,7 @@ export function Hero() {
                 </p>
                 <span className="text-muted-foreground inline-flex items-center gap-1.5 text-[11px] font-medium">
                   <Sparkles className="text-primary size-3.5" aria-hidden />
-                  AI 후보는 가입 후 연결
+                  AI 후보는 분석 화면에서 확인
                 </span>
               </div>
               <form onSubmit={handleAnalyze} className="space-y-4">
@@ -142,14 +136,14 @@ export function Hero() {
 
                 <div className="flex flex-wrap items-center justify-end gap-4 text-[12px] font-medium">
                   <Link
-                    href="/signup"
+                    href="/dashboard"
                     className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
                   >
                     <Plus className="size-3.5" aria-hidden />
                     더보기
                   </Link>
                   <Link
-                    href="/signup?intent=golden-keywords"
+                    href="/analyze/keyword"
                     className="inline-flex items-center gap-1 text-amber-700 transition-colors hover:text-amber-900 dark:text-amber-500/90"
                   >
                     <Key className="size-3.5" aria-hidden />
@@ -220,7 +214,7 @@ export function Hero() {
               className="relative mt-4 w-full rounded-full bg-amber-500/90 font-semibold text-zinc-950 hover:bg-amber-400"
               asChild
             >
-              <Link href="/signup?intent=golden-keywords">황금 키워드 보기</Link>
+              <Link href="/analyze/keyword">황금 키워드 보기</Link>
             </Button>
           </Card>
         </div>

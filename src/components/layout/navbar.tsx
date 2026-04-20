@@ -78,7 +78,7 @@ export function Navbar() {
             <Link href="/login">로그인</Link>
           </Button>
           <Button size="lg" className="hidden rounded-full px-5 sm:inline-flex" asChild>
-            <Link href="/signup">무료로 시작</Link>
+            <Link href="/dashboard">무료로 시작</Link>
           </Button>
 
           <Sheet>
@@ -121,7 +121,7 @@ export function Navbar() {
                   로그인
                 </Link>
                 <Button className="mt-2 w-full rounded-full" asChild>
-                  <Link href="/signup">무료로 시작</Link>
+                  <Link href="/dashboard">무료로 시작</Link>
                 </Button>
               </nav>
             </SheetContent>

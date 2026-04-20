@@ -16,6 +16,19 @@ export type SessionUser = {
   name: string
 }
 
+/** 로그인 없이 앱 전체를 쓸 때 사용하는 로컬 게스트 프로필 */
+export const GUEST_USER_ID = "guest" as const
+
+export const GUEST_USER: SessionUser = {
+  id: GUEST_USER_ID,
+  email: "guest@local",
+  name: "게스트",
+}
+
+export function isGuestUser(user: SessionUser | null | undefined): boolean {
+  return user?.id === GUEST_USER_ID
+}
+
 type StoredUser = SessionUser & {
   /** 데모 전용 평문 비밀번호 */
   password: string

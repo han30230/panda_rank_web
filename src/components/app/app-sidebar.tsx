@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 
 import { useAuth } from "@/contexts/auth-context"
+import { isGuestUser } from "@/lib/local-auth"
 import { siteConfig } from "@/lib/site-config"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -35,7 +36,7 @@ export function AppSidebar({ className }: { className?: string }) {
 
   function handleLogout() {
     logout()
-    router.push("/login")
+    router.push("/dashboard")
     router.refresh()
   }
 
@@ -82,8 +83,11 @@ export function AppSidebar({ className }: { className?: string }) {
       </ScrollArea>
       <div className="p-2">
         {user ? (
-          <p className="text-muted-foreground mb-2 truncate px-2 text-xs font-medium" title={user.email}>
-            {user.email}
+          <p
+            className="text-muted-foreground mb-2 truncate px-2 text-xs font-medium"
+            title={isGuestUser(user) ? "게스트" : user.email}
+          >
+            {isGuestUser(user) ? "게스트 · 로그인 없이 이용 중" : user.email}
           </p>
         ) : null}
         <Button variant="ghost" className="w-full justify-start gap-2 rounded-lg" asChild>
@@ -92,15 +96,26 @@ export function AppSidebar({ className }: { className?: string }) {
             설정
           </Link>
         </Button>
-        <Button
-          variant="ghost"
-          className="mt-1 w-full justify-start gap-2 rounded-lg text-destructive hover:text-destructive"
-          type="button"
-          onClick={handleLogout}
-        >
-          <LogOut className="size-4" />
-          로그아웃
-        </Button>
+        {user && !isGuestUser(user) ? (
+          <Button
+            variant="ghost"
+            className="mt-1 w-full justify-start gap-2 rounded-lg text-destructive hover:text-destructive"
+            type="button"
+            onClick={handleLogout}
+          >
+            <LogOut className="size-4" />
+            로그아웃
+          </Button>
+        ) : (
+          <div className="mt-1 grid gap-1">
+            <Button variant="ghost" className="w-full justify-start gap-2 rounded-lg" size="sm" asChild>
+              <Link href="/login">로그인</Link>
+            </Button>
+            <Button variant="ghost" className="w-full justify-start gap-2 rounded-lg" size="sm" asChild>
+              <Link href="/signup">계정 만들기</Link>
+            </Button>
+          </div>
+        )}
         <Button variant="outline" className="mt-2 w-full rounded-lg" size="sm" asChild>
           <Link href="/">랜딩으로</Link>
         </Button>

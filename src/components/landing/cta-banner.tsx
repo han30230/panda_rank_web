@@ -21,7 +21,7 @@ export function CtaBanner() {
                 className="h-12 rounded-full px-9 font-semibold shadow-[0_4px_18px_-2px_oklch(0.52_0.12_175/0.45)]"
                 asChild
               >
-                <Link href="/signup">
+                <Link href="/dashboard">
                   7일 무료 시작
                   <ArrowUpRight className="size-4" />
                 </Link>

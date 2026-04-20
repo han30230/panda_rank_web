@@ -37,7 +37,7 @@ export function Faq() {
           className="min-w-[12rem] rounded-full px-10 font-semibold shadow-[0_4px_14px_-2px_oklch(0.52_0.12_175/0.35)]"
           asChild
         >
-          <Link href="/signup">무료로 시작</Link>
+          <Link href="/dashboard">무료로 시작</Link>
         </Button>
         <Button variant="ghost" className="rounded-full text-sm font-medium" asChild>
           <a href="mailto:support@example.com">문의하기</a>

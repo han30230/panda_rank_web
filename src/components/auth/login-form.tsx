@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 
 import { useAuth } from "@/contexts/auth-context"
+import { isGuestUser } from "@/lib/local-auth"
 import { userExists } from "@/lib/local-auth"
 import { safeRedirectPath } from "@/lib/safe-redirect"
 import { loginSchema, type LoginValues } from "@/lib/validators"
@@ -36,7 +37,8 @@ export function LoginForm() {
   })
 
   useEffect(() => {
-    if (!ready || !user) return
+    if (!ready) return
+    if (!user || isGuestUser(user)) return
     router.replace(safeRedirectPath(searchParams.get("redirect")))
   }, [ready, user, router, searchParams])
 

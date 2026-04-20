@@ -144,7 +144,7 @@ export function DashboardPreviewSection() {
                     </li>
                   </ul>
                   <Button className="mt-5 w-full rounded-full" asChild>
-                    <Link href="/signup">무료로 시작</Link>
+                    <Link href="/dashboard">무료로 시작</Link>
                   </Button>
                 </Card>
               </div>
