@@ -15,6 +15,7 @@ const createSchema = z.object({
   outline: z.array(z.string()),
   metaTitle: z.string().trim().min(1),
   metaDescription: z.string().trim().min(1),
+  seoScore: z.coerce.number().int().min(0).max(100).optional(),
 })
 
 export async function GET() {
@@ -62,6 +63,7 @@ export async function POST(req: Request) {
       outline: d.outline,
       metaTitle: d.metaTitle,
       metaDescription: d.metaDescription,
+      seoScore: d.seoScore,
     },
   })
 

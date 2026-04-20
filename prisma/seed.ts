@@ -51,8 +51,9 @@ async function main() {
       ],
       metaTitle: "미니멀 책상 정리 완벽 가이드 | 2026",
       metaDescription: "적은 도구로 책상을 비우는 순서와 유지 루틴을 정리했습니다.",
+      seoScore: 78,
     },
-    update: {},
+    update: { seoScore: 78 },
   })
 
   await prisma.report.upsert({
@@ -71,8 +72,9 @@ async function main() {
       metaTitle: "재택근무 생산성: 집중 블록으로 하루를 나누기",
       metaDescription:
         "환경·시간·회의 세 가지 레버만으로 생산성을 끌어올리는 방법.",
+      seoScore: 71,
     },
-    update: {},
+    update: { seoScore: 71 },
   })
 
   await prisma.report.upsert({
@@ -90,8 +92,9 @@ async function main() {
       outline: ["버너 종류 한눈에 보기", "안전 체크리스트", "예산별 추천", "관리·세척"],
       metaTitle: "캠핑용 버너 고르기: 안전·출력·무게 기준",
       metaDescription: "초보 캠퍼도 실수하지 않는 선택 기준과 추천 조합.",
+      seoScore: 74,
     },
-    update: {},
+    update: { seoScore: 74 },
   })
 }
 

@@ -42,6 +42,8 @@ model Report {
   outline         Json // string[]
   metaTitle       String
   metaDescription String
+  /// 분석·초안 저장 시 계산된 평균 SEO 관련 점수 (0–100)
+  seoScore        Int?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

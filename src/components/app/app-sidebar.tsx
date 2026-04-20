@@ -47,12 +47,15 @@ export function AppSidebar({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="flex h-14 items-center gap-2 px-4">
+      <Link
+        href="/dashboard"
+        className="hover:bg-sidebar-accent/50 flex h-14 items-center gap-2 rounded-lg px-4 transition-colors"
+      >
         <span className="bg-sidebar-primary text-sidebar-primary-foreground flex size-9 items-center justify-center rounded-xl">
           <BarChart3 className="size-4" />
         </span>
         <span className="font-semibold tracking-tight">{siteConfig.name}</span>
-      </div>
+      </Link>
       <Separator />
       <ScrollArea className="flex-1 px-2 py-4">
         <nav className="flex flex-col gap-1">

@@ -100,6 +100,9 @@ export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps
     setSaving(true)
     try {
       const summary = `의도: ${result.intent}. 제안 각도: ${result.ideas.join(", ")}`
+      const seoScore = Math.round(
+        (result.scores.seo + result.scores.fit + result.scores.readability) / 3,
+      )
       const res = await fetch("/api/reports", {
         method: "POST",
         credentials: "include",
@@ -114,6 +117,7 @@ export function KeywordAnalyzePanel({ initialKeyword }: KeywordAnalyzePanelProps
           outline: result.ideas,
           metaTitle: `${q} | ${siteConfig.name}`,
           metaDescription: `${result.intent} 기준으로 정리한 키워드 분석 리포트입니다.`,
+          seoScore,
         }),
       })
       const data = (await res.json().catch(() => ({}))) as { report?: { id: string } }

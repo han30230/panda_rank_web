@@ -1,14 +1,10 @@
 import Link from "next/link"
 
-import { aiRecommendations } from "@/constants/dashboard"
+import type { AiRec } from "@/lib/dashboard-summary"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 
-type AiRecommendationsProps = {
-  items?: typeof aiRecommendations
-}
-
-export function AiRecommendations({ items = aiRecommendations }: AiRecommendationsProps) {
+export function AiRecommendations({ items }: { items: AiRec[] }) {
   return (
     <Card className="surface-card rounded-[1.05rem] px-6 py-7">
       <p className="text-sm font-semibold">추천 기능</p>

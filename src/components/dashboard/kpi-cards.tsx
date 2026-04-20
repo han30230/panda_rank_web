@@ -7,7 +7,8 @@ import {
   Gauge,
 } from "lucide-react"
 
-import { dashboardKpis, type KpiTrend } from "@/constants/dashboard"
+import type { KpiTrend } from "@/constants/dashboard"
+import type { DashboardKpi } from "@/lib/dashboard-summary"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 
@@ -35,10 +36,10 @@ function TrendTag({ trend, delta }: { trend: KpiTrend; delta: string }) {
   )
 }
 
-export function KpiCards() {
+export function KpiCards({ kpis }: { kpis: DashboardKpi[] }) {
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-      {dashboardKpis.map((k) => {
+      {kpis.map((k) => {
         const Icon = icons[k.id] ?? BarChart3
         return (
           <Card

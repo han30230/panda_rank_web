@@ -171,6 +171,7 @@ export function ContentStudioPanel() {
           outline,
           metaTitle: meta.title,
           metaDescription: meta.desc,
+          seoScore: Math.round((scores.seo + scores.keywordFit + scores.readability) / 3),
         }),
       })
       const data = (await res.json().catch(() => ({}))) as { report?: { id: string } }

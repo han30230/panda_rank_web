@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 
 import { Sidebar } from "@/components/layout/sidebar"
 import { siteConfig } from "@/lib/site-config"
@@ -28,7 +29,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Sidebar className="flex w-full border-0" />
             </SheetContent>
           </Sheet>
-          <span className="text-sm font-semibold">{siteConfig.name}</span>
+          <Link href="/dashboard" className="text-sm font-semibold hover:underline">
+            {siteConfig.name}
+          </Link>
         </div>
         {children}
       </div>
