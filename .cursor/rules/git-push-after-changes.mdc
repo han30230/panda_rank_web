@@ -1,0 +1,10 @@
+---
+description: After completing code changes, commit and push to origin
+alwaysApply: true
+---
+
+# Git: commit and push
+
+When you finish a task that changes tracked source files (or the user asks to save work), **commit with a clear message** and **`git push`** to `origin` on the current branch, unless the user explicitly says not to or there is nothing to commit.
+
+If push fails (auth, no remote), report the error briefly and do not loop on repeated failed pushes.
