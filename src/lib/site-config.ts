@@ -38,9 +38,10 @@ export const mainNav = [
   {
     title: "블로그",
     items: [
-      { title: "블로그 글쓰기", href: "/content/new", description: "AI 초안·SEO 스튜디오" },
+      { title: "블로그글쓰기", href: "/content/new", description: "AI 초안·SEO 스튜디오" },
       { title: "블로그 분석", href: "/analyze/keyword", description: "키워드·검색 의도" },
-      { title: "블로그 순위", href: "/reports", description: "저장 리포트·노출 점수" },
+      { title: "블로그순위", href: "/reports", description: "저장 리포트·노출 점수" },
+      { title: "블로그", href: "/#blog-tools", description: "홈 바로가기(글쓰기·분석·순위 퀵 링크)" },
     ],
   },
   {

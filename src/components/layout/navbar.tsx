@@ -18,7 +18,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 export function Navbar() {
   return (
     <header className="border-border/55 sticky top-0 z-50 w-full border-b bg-background/85 shadow-sm backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-4 md:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-14 max-w-7xl flex-wrap items-center justify-between gap-x-2 gap-y-2 px-4 py-2 md:px-6 lg:px-8">
         <Link
           href="/"
           className="flex shrink-0 items-center gap-2 font-semibold tracking-tight text-foreground"
@@ -30,10 +30,11 @@ export function Navbar() {
         </Link>
 
         <NavigationMenu
-          className="hidden min-w-0 max-w-[min(100%,52rem)] flex-1 justify-center lg:flex"
+          className="relative z-50 hidden min-w-0 max-w-[min(100%,56rem)] flex-1 justify-center lg:flex"
           viewport={false}
         >
-          <NavigationMenuList className="flex max-w-full flex-nowrap justify-center gap-0 overflow-x-auto overscroll-x-contain py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* overflow-x-auto 제거: 드롭다운(제품·리소스 등)이 잘리지 않도록 줄바꿈 사용 */}
+          <NavigationMenuList className="flex flex-wrap justify-center gap-x-0.5 gap-y-1 py-0.5">
             {mainNav.map((group) => (
               <NavigationMenuItem key={group.title}>
                 <NavigationMenuTrigger className="h-9 shrink-0 px-2 text-xs font-medium sm:px-2.5 sm:text-sm">

@@ -160,7 +160,7 @@ export function Hero() {
               </form>
             </Card>
 
-            <Card className="surface-card rounded-[1.35rem] p-5 md:p-7">
+            <Card id="blog-tools" className="surface-card scroll-mt-24 rounded-[1.35rem] p-5 md:p-7">
               <p className="text-muted-foreground mb-4 text-center text-xs font-semibold tracking-wide uppercase md:text-left">
                 바로가기
               </p>
