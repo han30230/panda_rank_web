@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import {
   Copy,
@@ -39,11 +39,13 @@ import {
   CONTENT_LENGTH_OPTIONS,
   CONTENT_POST_TYPES,
   CONTENT_TONE_PRESETS,
-  CONTENT_TRENDING_TOPICS,
+  getTrendingTopicsForPostType,
+  type TrendingTopicItem,
 } from "@/constants/content-studio"
 import type { ReportRow } from "@/lib/report-dto"
 
-const TITLE_MAX = 50
+/** 네이버 블로그 제목 길이에 맞춤 (트렌드 예시·긴 제목 허용) */
+const TITLE_MAX = 100
 const KEYWORD_MAX = 5
 const IMAGE_MAX = 10
 const IMAGE_MAX_MB = 5
@@ -143,6 +145,8 @@ export function ContentStudioPanel() {
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [recentReports, setRecentReports] = useState<ReportRow[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const trendingTopics = useMemo(() => getTrendingTopicsForPostType(postTypeId), [postTypeId])
 
   useEffect(() => {
     void fetch("/api/reports", { credentials: "include" })
@@ -333,14 +337,16 @@ export function ContentStudioPanel() {
     toast.message("메타 제목에 반영했습니다.")
   }
 
-  function applyTrendQuery(q: string) {
-    const trimmed = q.trim()
-    setTopic((prev) => (prev ? prev : trimmed.slice(0, TITLE_MAX)))
-    setKeywordChips((chips) => {
-      const v = trimmed.slice(0, 40)
-      if (!v || chips.length >= KEYWORD_MAX || chips.includes(v)) return chips
-      return [...chips, v]
-    })
+  function applyTrendTopic(item: TrendingTopicItem) {
+    const title = item.title.trim().slice(0, TITLE_MAX)
+    const uniq = [...new Set(item.keywords.map((k) => k.trim()).filter(Boolean))].slice(0, KEYWORD_MAX)
+    setTopic(title)
+    setKeywordChips(uniq)
+    if (uniq.length === 0) {
+      toast.message("제목을 채웠습니다. 키워드를 추가해 주세요.")
+    } else {
+      toast.success("제목과 키워드를 채웠습니다.")
+    }
   }
 
   const titleLen = topic.length
@@ -693,14 +699,16 @@ export function ContentStudioPanel() {
                 <Sparkles className="text-violet-600 size-4" />
                 <p className="text-sm font-bold">실시간 트렌드 주제</p>
               </div>
-              <p className="text-muted-foreground mt-1 text-xs">정보성 글에 어울리는 예시입니다. 클릭 시 키워드가 채워집니다.</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                선택한 글 유형에 맞는 인기 검색형 주제입니다. 클릭하면 제목·키워드가 함께 채워집니다.
+              </p>
             </div>
             <ul className="divide-border/60 max-h-[min(70vh,520px)] divide-y overflow-y-auto">
-              {CONTENT_TRENDING_TOPICS.map((item) => (
+              {trendingTopics.map((item) => (
                 <li key={item.id}>
                   <button
                     type="button"
-                    onClick={() => applyTrendQuery(item.query)}
+                    onClick={() => applyTrendTopic(item)}
                     className="hover:bg-muted/50 flex w-full items-start gap-3 px-4 py-3 text-left transition-colors"
                   >
                     <span className="bg-foreground mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full">
@@ -708,6 +716,11 @@ export function ContentStudioPanel() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="line-clamp-2 text-sm font-medium leading-snug">{item.title}</span>
+                      {item.keywords.length > 0 ? (
+                        <span className="text-muted-foreground mt-1 line-clamp-1 block text-[11px]">
+                          {item.keywords.slice(0, 4).join(" · ")}
+                        </span>
+                      ) : null}
                     </span>
                     {item.hot ? (
                       <Badge className="shrink-0 border-0 bg-red-500 text-[10px] font-semibold text-white">
