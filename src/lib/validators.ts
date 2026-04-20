@@ -21,10 +21,3 @@ export const forgotPasswordSchema = z.object({
 export type LoginValues = z.infer<typeof loginSchema>
 export type SignupValues = z.infer<typeof signupSchema>
 export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>
-
-export const resetPasswordSchema = z.object({
-  token: z.string().min(1, "유효한 링크가 아닙니다."),
-  password: z.string().min(8, "비밀번호는 8자 이상이어야 합니다."),
-})
-
-export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>
