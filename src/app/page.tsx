@@ -1,35 +1,64 @@
+import type { Metadata } from "next"
+import Link from "next/link"
+
 import { BehaviorFlowSection } from "@/components/landing/behavior-flow-section"
-import { CapabilitiesSection } from "@/components/landing/capabilities-section"
 import { CtaBanner } from "@/components/landing/cta-banner"
 import { DashboardPreviewSection } from "@/components/landing/dashboard-preview-section"
-import { FaqSection } from "@/components/landing/faq-section"
-import { HeroSection } from "@/components/landing/hero-section"
 import { LandingMidCta } from "@/components/landing/landing-mid-cta"
 import { SocialProofStrip } from "@/components/landing/social-proof-strip"
 import { TrustStatsSection } from "@/components/landing/trust-stats-section"
-import { UseCasesSection } from "@/components/landing/use-cases-section"
 import { WorkflowSection } from "@/components/landing/workflow-section"
+import { PublicPageShell } from "@/components/layout/public-page-shell"
 import { MarketingSection } from "@/components/layout/marketing-section"
 import { SectionHeader } from "@/components/layout/section-header"
+import { Faq } from "@/components/sections/faq"
+import { Features } from "@/components/sections/features"
+import { Hero } from "@/components/sections/hero"
+import { PricingSection } from "@/components/sections/pricing"
+import { UseCases } from "@/components/sections/use-cases"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import Link from "next/link"
+import { siteConfig } from "@/lib/site-config"
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
+  title: {
+    default: `${siteConfig.name} — 키워드·콘텐츠 자동화`,
+    template: `%s | ${siteConfig.name}`,
+  },
+  description: siteConfig.description,
+  keywords: ["SEO", "키워드 분석", "콘텐츠 자동화", "AI 작성", "온페이지", "SaaS"],
+  openGraph: {
+    title: `${siteConfig.name} — 키워드·콘텐츠 자동화`,
+    description: siteConfig.description,
+    url: siteConfig.url,
+    siteName: siteConfig.name,
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteConfig.name} — 키워드·콘텐츠 자동화`,
+    description: siteConfig.description,
+  },
+  robots: { index: true, follow: true },
+}
 
 export default function HomePage() {
   return (
-    <>
-      <HeroSection />
+    <PublicPageShell>
+      <Hero />
       <SocialProofStrip />
       <BehaviorFlowSection />
       <WorkflowSection />
-      <CapabilitiesSection />
+      <Features />
       <LandingMidCta
         heading="내 사이트에 맞는 워크플로를 골라 보세요"
         description="온보딩에서 목표만 고르면 대시보드 추천과 메뉴 순서가 정돈됩니다."
         primary={{ label: "무료로 시작", href: "/signup" }}
         secondary={{ label: "플랜·한도 비교", href: "/pricing" }}
       />
-      <UseCasesSection />
+      <UseCases />
       <MarketingSection>
         <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
           <div>
@@ -44,9 +73,7 @@ export default function HomePage() {
             </Button>
           </div>
           <Card className="surface-card flex aspect-video items-center justify-center rounded-[1.25rem] border-dashed border-border/70 p-10 text-center">
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              영상 또는 인터랙티브 데모 슬롯
-            </p>
+            <p className="text-muted-foreground text-sm leading-relaxed">영상 또는 인터랙티브 데모 슬롯</p>
           </Card>
         </div>
       </MarketingSection>
@@ -73,9 +100,7 @@ export default function HomePage() {
           ].map((t) => (
             <Card key={t.role} className="surface-card p-7 md:p-8">
               <p className="text-[15px] font-medium leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
-              <p className="text-muted-foreground mt-6 text-xs font-medium tracking-wide">
-                {t.role}
-              </p>
+              <p className="text-muted-foreground mt-6 text-xs font-medium tracking-wide">{t.role}</p>
             </Card>
           ))}
         </div>
@@ -87,13 +112,13 @@ export default function HomePage() {
         secondary={{ label: "요금 안내", href: "/pricing" }}
       />
       <DashboardPreviewSection />
+      <PricingSection />
       <MarketingSection spacing="tight">
         <div className="surface-card flex flex-col items-start justify-between gap-6 rounded-[1.25rem] border-border/70 px-8 py-10 md:flex-row md:items-center md:px-12 md:py-12">
           <div className="text-center md:text-left">
             <h2 className="text-title-sm">요금은 투명하게</h2>
             <p className="text-lead mt-3 max-w-lg">
-              무료 한도·팀 시트·연간 할인을 한 표에서 비교합니다. 신용카드 없이 무료 체험을
-              시작할 수 있습니다.
+              무료 한도·팀 시트·연간 할인을 한 표에서 비교합니다. 신용카드 없이 무료 체험을 시작할 수 있습니다.
             </p>
           </div>
           <Button size="lg" className="h-12 shrink-0 rounded-full px-10 font-semibold" asChild>
@@ -101,8 +126,8 @@ export default function HomePage() {
           </Button>
         </div>
       </MarketingSection>
-      <FaqSection />
+      <Faq />
       <CtaBanner />
-    </>
+    </PublicPageShell>
   )
 }

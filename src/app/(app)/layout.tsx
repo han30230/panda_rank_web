@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import { AppSidebar } from "@/components/app/app-sidebar"
+import { Sidebar } from "@/components/layout/sidebar"
 import { siteConfig } from "@/lib/site-config"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-background flex min-h-[calc(100dvh-0px)]">
-      <AppSidebar className="hidden md:flex" />
+      <Sidebar className="hidden md:flex" />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="border-border/60 flex h-14 items-center gap-2 border-b px-3 md:hidden">
           <Sheet>
@@ -25,7 +25,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-72 p-0">
-              <AppSidebar className="flex w-full border-0" />
+              <Sidebar className="flex w-full border-0" />
             </SheetContent>
           </Sheet>
           <span className="text-sm font-semibold">{siteConfig.name}</span>

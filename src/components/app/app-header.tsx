@@ -15,7 +15,7 @@ type AppHeaderProps = {
  */
 export function AppHeader({ title, description, action }: AppHeaderProps) {
   return (
-    <header className="border-border/60 bg-background/90 flex h-[3.75rem] shrink-0 items-center justify-between gap-4 border-b px-4 backdrop-blur-md md:px-6">
+    <header className="border-border/70 bg-background/92 flex h-[3.75rem] shrink-0 items-center justify-between gap-4 border-b px-4 shadow-[0_1px_0_oklch(0.48_0.11_188/0.06)] backdrop-blur-md md:px-6">
       <div className="min-w-0">
         <h1 className="text-foreground truncate text-lg font-semibold tracking-tight md:text-xl">
           {title}

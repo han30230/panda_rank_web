@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react"
 import Link from "next/link"
-import { Copy } from "lucide-react"
+import { Copy, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 
 type Phase = "idle" | "loading" | "done" | "error"
 
@@ -69,10 +70,10 @@ export function KeywordAnalyzePanel() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
-      <Card className="border-border/80 rounded-2xl p-6 shadow-sm lg:col-span-5">
-        <h2 className="text-sm font-medium">입력</h2>
-        <p className="text-muted-foreground mt-1 text-xs">
-          키워드를 넣고 실행하면 샘플 점수와 의도 요약이 표시됩니다.
+      <Card className="surface-analytics rounded-2xl p-6 lg:col-span-5">
+        <h2 className="text-sm font-semibold">분석 입력</h2>
+        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+          키워드와 검색 맥락을 넣으면 의도·점수·제목 각도 요약이 채워집니다.
         </p>
         <div className="mt-4 space-y-4">
           <div className="space-y-2">
@@ -103,11 +104,12 @@ export function KeywordAnalyzePanel() {
             </div>
           </div>
           <Button
-            className="w-full rounded-xl"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl font-semibold shadow-sm"
             disabled={phase === "loading"}
             onClick={run}
             type="button"
           >
+            <Sparkles className="size-3.5 opacity-90" aria-hidden />
             {phase === "loading" ? "분석 중…" : "분석 실행"}
           </Button>
           <Button variant="outline" className="w-full rounded-xl" asChild>
@@ -116,9 +118,9 @@ export function KeywordAnalyzePanel() {
         </div>
       </Card>
 
-      <Card className="border-border/80 overflow-hidden rounded-2xl p-0 shadow-sm lg:col-span-7">
+      <Card className="surface-card overflow-hidden rounded-2xl border-border/90 p-0 lg:col-span-7">
         <Tabs defaultValue="overview" className="flex flex-col gap-0">
-          <div className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+          <div className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b bg-muted/20 px-4 py-3">
             <TabsList className="h-9 rounded-lg">
               <TabsTrigger value="overview" className="text-xs sm:text-sm">
                 개요
@@ -160,12 +162,15 @@ export function KeywordAnalyzePanel() {
               {phase === "loading" ? (
                 <div className="space-y-4" role="status" aria-live="polite">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-muted-foreground text-sm">{steps[stepIdx]}</p>
-                    <Badge variant="outline" className="font-normal">
-                      분석 중
+                    <p className="text-foreground text-sm font-medium">{steps[stepIdx]}</p>
+                    <Badge className="inline-flex items-center gap-1 border-primary/25 bg-primary/10 font-normal text-primary">
+                      <Sparkles className="size-3" aria-hidden />
+                      AI 파이프라인 실행
                     </Badge>
                   </div>
-                  <Progress value={progress} className="h-2" />
+                  <div className={cn("rounded-full", "ai-processing-ring")}>
+                    <Progress value={progress} className="h-2.5 rounded-full bg-muted/80" />
+                  </div>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <Skeleton className="h-20 rounded-xl" />
                     <Skeleton className="h-20 rounded-xl" />
@@ -195,23 +200,29 @@ export function KeywordAnalyzePanel() {
                     </p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <Card className="rounded-xl border-border/80 p-4 shadow-sm">
-                      <p className="text-xs font-medium">SEO 잠재 점수</p>
-                      <p className="text-primary mt-1 text-2xl font-semibold tabular-nums">
+                    <Card className="surface-analytics rounded-xl p-4">
+                      <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
+                        SEO 잠재 점수
+                      </p>
+                      <p className="text-primary mt-2 text-2xl font-semibold tabular-nums">
                         {result.scores.seo}
                       </p>
                       <p className="text-muted-foreground mt-2 text-xs">구조·의도 기준 가이드</p>
                     </Card>
-                    <Card className="rounded-xl border-border/80 p-4 shadow-sm">
-                      <p className="text-xs font-medium">키워드 적합도</p>
-                      <p className="text-primary mt-1 text-2xl font-semibold tabular-nums">
+                    <Card className="surface-analytics rounded-xl p-4">
+                      <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
+                        키워드 적합도
+                      </p>
+                      <p className="text-primary mt-2 text-2xl font-semibold tabular-nums">
                         {result.scores.fit}
                       </p>
                       <p className="text-muted-foreground mt-2 text-xs">제목·본문 일치</p>
                     </Card>
-                    <Card className="rounded-xl border-border/80 p-4 shadow-sm">
-                      <p className="text-xs font-medium">가독성</p>
-                      <p className="text-primary mt-1 text-2xl font-semibold tabular-nums">
+                    <Card className="surface-analytics rounded-xl p-4">
+                      <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
+                        가독성
+                      </p>
+                      <p className="text-primary mt-2 text-2xl font-semibold tabular-nums">
                         {result.scores.readability}
                       </p>
                       <p className="text-muted-foreground mt-2 text-xs">문장·단락 길이</p>

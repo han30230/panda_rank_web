@@ -7,9 +7,11 @@ import {
   Save,
   Share2,
   Pencil,
+  Sparkles,
 } from "lucide-react"
 import { toast } from "sonner"
 
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -40,9 +42,9 @@ function ScoreCard({
   action?: string
 }) {
   return (
-    <Card className="border-border/80 rounded-xl p-4 shadow-sm">
+    <Card className="surface-analytics rounded-xl p-4">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium">{title}</p>
+        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">{title}</p>
         <span className="text-primary text-lg font-semibold tabular-nums">{score}</span>
       </div>
       <p className="text-muted-foreground mt-2 text-xs leading-relaxed">{hint}</p>
@@ -119,10 +121,10 @@ export function ContentStudioPanel() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
-      <Card className="border-border/80 rounded-2xl p-6 shadow-sm lg:col-span-5">
-        <h2 className="text-sm font-medium">입력</h2>
-        <p className="text-muted-foreground mt-1 text-xs">
-          필수만 채우고 실행합니다. 고급 옵션은 접어 둡니다.
+      <Card className="surface-analytics rounded-2xl p-6 lg:col-span-5">
+        <h2 className="text-sm font-semibold">입력</h2>
+        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+          필수 필드만 채우면 됩니다. 초안은 팀 룰(톤·금지어)에 맞춰 생성됩니다.
         </p>
         <div className="mt-4 space-y-4">
           <div className="space-y-2">
@@ -156,10 +158,11 @@ export function ContentStudioPanel() {
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              className="rounded-xl"
+              className="inline-flex items-center justify-center gap-2 rounded-xl font-semibold shadow-sm"
               onClick={generate}
               disabled={phase === "generating"}
             >
+              <Sparkles className="size-3.5 opacity-90" aria-hidden />
               {phase === "generating" ? "생성 중…" : "초안 생성"}
             </Button>
             <Button type="button" variant="outline" className="rounded-xl" onClick={() => setPhase("idle")}>
@@ -169,9 +172,9 @@ export function ContentStudioPanel() {
         </div>
       </Card>
 
-      <Card className="border-border/80 overflow-hidden rounded-2xl p-0 shadow-sm lg:col-span-7">
-        <div className="border-border/60 bg-muted/20 flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-          <p className="text-sm font-medium">결과</p>
+      <Card className="surface-card overflow-hidden rounded-2xl border-border/90 p-0 lg:col-span-7">
+        <div className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b bg-muted/25 px-4 py-3">
+          <p className="text-sm font-semibold">결과</p>
           {phase === "done" ? (
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -210,12 +213,15 @@ export function ContentStudioPanel() {
           {phase === "generating" ? (
             <div className="space-y-4" role="status" aria-live="polite">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-muted-foreground text-sm">{loadingMessages[loadingIdx]}</p>
-                <Badge variant="secondary" className="font-normal">
-                  AI 작업 중
+                <p className="text-foreground text-sm font-medium">{loadingMessages[loadingIdx]}</p>
+                <Badge className="border-primary/25 bg-primary/10 font-normal text-primary inline-flex items-center gap-1">
+                  <Sparkles className="size-3" aria-hidden />
+                  AI 분석 중
                 </Badge>
               </div>
-              <Progress value={progress} className="h-2" />
+              <div className={cn("rounded-full", "ai-processing-ring")}>
+                <Progress value={progress} className="h-2.5 rounded-full bg-muted/80" />
+              </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <Skeleton className="h-24 rounded-xl" />
                 <Skeleton className="h-24 rounded-xl" />

@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 
-import { SiteFooter } from "@/components/marketing/site-footer"
-import { SiteHeader } from "@/components/marketing/site-header"
+import { PublicPageShell } from "@/components/layout/public-page-shell"
 import { siteConfig } from "@/lib/site-config"
 
 export const metadata: Metadata = {
@@ -11,14 +10,7 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
-  keywords: [
-    "SEO",
-    "키워드 분석",
-    "콘텐츠 자동화",
-    "AI 작성",
-    "온페이지",
-    "SaaS",
-  ],
+  keywords: ["SEO", "키워드 분석", "콘텐츠 자동화", "AI 작성", "온페이지", "SaaS"],
   openGraph: {
     title: `${siteConfig.name} — 키워드·콘텐츠 자동화`,
     description: siteConfig.description,
@@ -32,10 +24,7 @@ export const metadata: Metadata = {
     title: `${siteConfig.name} — 키워드·콘텐츠 자동화`,
     description: siteConfig.description,
   },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  robots: { index: true, follow: true },
 }
 
 export default function MarketingLayout({
@@ -43,11 +32,5 @@ export default function MarketingLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  return (
-    <>
-      <SiteHeader />
-      <main className="flex-1">{children}</main>
-      <SiteFooter />
-    </>
-  )
+  return <PublicPageShell>{children}</PublicPageShell>
 }

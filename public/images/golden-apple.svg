@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="ga-body" x1="40" y1="20" x2="160" y2="200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FEF3C7"/>
+      <stop offset="0.35" stop-color="#FBBF24"/>
+      <stop offset="0.65" stop-color="#D97706"/>
+      <stop offset="1" stop-color="#92400E"/>
+    </linearGradient>
+    <linearGradient id="ga-shine" x1="70" y1="50" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFBEB" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#FBBF24" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="ga-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(100 120) rotate(90) scale(90 100)">
+      <stop stop-color="#F59E0B" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#78350F" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="ga-soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <ellipse cx="100" cy="195" rx="72" ry="14" fill="url(#ga-glow)"/>
+  <path
+    fill="url(#ga-body)"
+    filter="url(#ga-soft)"
+    d="M100 28c-8 0-14 4-18 10-4-2-9-3-14-3-18 0-32 22-32 52 0 48 28 88 64 88s64-40 64-88c0-30-14-52-32-52-5 0-10 1-14 3-4-6-10-10-18-10Z"
+  />
+  <ellipse cx="88" cy="78" rx="28" ry="38" fill="url(#ga-shine)" opacity="0.85"/>
+  <path
+    fill="#65A30D"
+    d="M96 26c2-8 8-18 18-22-4 10-6 18-6 24-4-2-8-2-12-2Z"
+  />
+  <text
+    x="100"
+    y="168"
+    text-anchor="middle"
+    fill="#451A03"
+    fill-opacity="0.75"
+    font-family="system-ui,Segoe UI,sans-serif"
+    font-size="9"
+    font-weight="700"
+    letter-spacing="0.18em"
+  >
+    FINE GOLD 999.9
+  </text>
+</svg>
