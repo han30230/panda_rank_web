@@ -2,9 +2,11 @@ import bcrypt from "bcryptjs"
 import { NextResponse } from "next/server"
 import { z } from "zod"
 
-import { GUEST_USER_ID, getSessionWithUser, randomSessionToken, sessionExpiresAt } from "@/lib/auth-server"
+import { getSessionWithUser, randomSessionToken, sessionExpiresAt } from "@/lib/auth-server"
+import { GUEST_USER_ID } from "@/lib/guest-user"
 import { setSessionCookie } from "@/lib/cookie-session"
 import { prisma } from "@/lib/prisma"
+import { userToSessionUser } from "@/lib/session-user"
 import { loginSchema } from "@/lib/validators"
 
 export async function POST(req: Request) {
@@ -42,12 +44,7 @@ export async function POST(req: Request) {
   })
 
   const res = NextResponse.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      isGuest: false,
-    },
+    user: userToSessionUser(user),
   })
   setSessionCookie(res, token)
   return res

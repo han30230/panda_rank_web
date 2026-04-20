@@ -1,49 +1,45 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useSyncExternalStore } from "react"
+import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useState } from "react"
 import { Sparkles, X } from "lucide-react"
 
+import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 
-const STORAGE_KEY = "rankdeck_dashboard_welcome_dismissed"
-const BANNER_EVENT = "rankdeck-banner-dismiss"
-
-function subscribe(onChange: () => void) {
-  if (typeof window === "undefined") return () => {}
-  const handler = () => onChange()
-  window.addEventListener("storage", handler)
-  window.addEventListener(BANNER_EVENT, handler)
-  return () => {
-    window.removeEventListener("storage", handler)
-    window.removeEventListener(BANNER_EVENT, handler)
-  }
+type Props = {
+  initialDismissed: boolean
 }
 
-function getSnapshot() {
-  if (typeof window === "undefined") return false
-  try {
-    return localStorage.getItem(STORAGE_KEY) === "1"
-  } catch {
-    return false
-  }
-}
+export function DashboardWelcomeBanner({ initialDismissed }: Props) {
+  const router = useRouter()
+  const { user, ready } = useAuth()
+  const [localDismissed, setLocalDismissed] = useState(false)
 
-function getServerSnapshot() {
-  return false
-}
+  const dismissed =
+    initialDismissed ||
+    localDismissed ||
+    (ready && user?.dashboardWelcomeDismissed === true)
 
-export function DashboardWelcomeBanner() {
-  const dismissed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  useEffect(() => {
+    setLocalDismissed(false)
+  }, [initialDismissed])
 
-  const dismiss = useCallback(() => {
+  const dismiss = useCallback(async () => {
+    setLocalDismissed(true)
     try {
-      localStorage.setItem(STORAGE_KEY, "1")
+      await fetch("/api/user/settings", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dashboardWelcomeDismissed: true }),
+      })
+      router.refresh()
     } catch {
       /* ignore */
     }
-    window.dispatchEvent(new Event(BANNER_EVENT))
-  }, [])
+  }, [router])
 
   if (dismissed) return null
 
@@ -75,7 +71,7 @@ export function DashboardWelcomeBanner() {
             variant="ghost"
             className="shrink-0 rounded-full"
             type="button"
-            onClick={dismiss}
+            onClick={() => void dismiss()}
             aria-label="배너 닫기"
           >
             <X className="size-4" />

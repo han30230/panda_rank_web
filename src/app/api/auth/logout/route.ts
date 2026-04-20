@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server"
 
-import {
-  GUEST_USER_ID,
-  getSessionWithUser,
-  randomSessionToken,
-  sessionExpiresAt,
-} from "@/lib/auth-server"
+import { getSessionWithUser, randomSessionToken, sessionExpiresAt } from "@/lib/auth-server"
+import { GUEST_USER_ID } from "@/lib/guest-user"
 import { setSessionCookie } from "@/lib/cookie-session"
 import { prisma } from "@/lib/prisma"
+import { userToSessionUser } from "@/lib/session-user"
 
 export async function POST() {
   const prev = await getSessionWithUser()
@@ -26,12 +23,7 @@ export async function POST() {
   })
 
   const res = NextResponse.json({
-    user: {
-      id: guest.id,
-      email: guest.email,
-      name: guest.name,
-      isGuest: true,
-    },
+    user: userToSessionUser(guest),
   })
   setSessionCookie(res, token)
   return res

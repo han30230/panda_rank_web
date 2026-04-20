@@ -15,8 +15,8 @@ export default function ForgotPasswordPage() {
       <Card className="w-full max-w-md rounded-3xl border-border/80 p-8 shadow-lg">
         <h1 className="text-2xl font-semibold tracking-tight">비밀번호 재설정</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          가입 시 사용한 이메일을 입력하면 재설정 링크를 보내 드립니다. (데모 화면 — 실제 메일은 연동 후
-          발송됩니다.)
+          가입 시 사용한 이메일을 입력해 주세요. 등록된 주소로 재설정 링크를 보냅니다. 메일 서버를 연동하면
+          실제 발송이 이루어집니다.
         </p>
         <div className="mt-6">
           <ForgotPasswordForm />

@@ -110,22 +110,27 @@ export function HeroSection() {
               </div>
               <div>
                 <p className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
-                  샘플 트렌드
+                  바로 분석하기
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {sampleTrends.map((t) => (
-                    <Badge
+                    <Link
                       key={t.label}
-                      variant={t.hot ? "default" : "secondary"}
-                      className="rounded-full px-3 py-1 font-normal"
+                      href={`/analyze/keyword?q=${encodeURIComponent(t.label)}`}
+                      className="inline-flex"
                     >
-                      {t.label}
-                      {t.hot ? (
-                        <span className="text-primary-foreground/80 ml-1 text-[10px]">
-                          추천
-                        </span>
-                      ) : null}
-                    </Badge>
+                      <Badge
+                        variant={t.hot ? "default" : "secondary"}
+                        className="rounded-full px-3 py-1 font-normal transition-opacity hover:opacity-90"
+                      >
+                        {t.label}
+                        {t.hot ? (
+                          <span className="text-primary-foreground/80 ml-1 text-[10px]">
+                            추천
+                          </span>
+                        ) : null}
+                      </Badge>
+                    </Link>
                   ))}
                 </div>
               </div>

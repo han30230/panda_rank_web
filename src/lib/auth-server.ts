@@ -4,8 +4,6 @@ import { randomBytes } from "crypto"
 import { prisma } from "@/lib/prisma"
 import { SESSION_COOKIE_NAME } from "@/lib/session-constants"
 
-export const GUEST_USER_ID = "user_guest"
-
 const SESSION_DAYS = 7
 
 export function randomSessionToken(): string {
@@ -35,8 +33,4 @@ export async function getSessionWithUser() {
 export async function getUserFromCookie() {
   const s = await getSessionWithUser()
   return s?.user ?? null
-}
-
-export function isGuestUserRecord(user: { id: string; email: string }) {
-  return user.id === GUEST_USER_ID || user.email === "guest@local"
 }

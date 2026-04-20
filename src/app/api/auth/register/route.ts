@@ -5,6 +5,7 @@ import { z } from "zod"
 import { getSessionWithUser, randomSessionToken, sessionExpiresAt } from "@/lib/auth-server"
 import { setSessionCookie } from "@/lib/cookie-session"
 import { prisma } from "@/lib/prisma"
+import { userToSessionUser } from "@/lib/session-user"
 import { emailSchema } from "@/lib/validators"
 
 const bodySchema = z.object({
@@ -57,12 +58,7 @@ export async function POST(req: Request) {
   })
 
   const res = NextResponse.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      isGuest: false,
-    },
+    user: userToSessionUser(user),
   })
   setSessionCookie(res, token)
   return res

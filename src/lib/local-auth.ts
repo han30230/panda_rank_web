@@ -1,6 +1,5 @@
 /**
- * 브라우저 전용 데모 인증 — 서버 DB 없이 가입/로그인을 재현합니다.
- * 프로덕션에서는 API·세션 쿠키(httpOnly)·해시 비밀번호로 교체하세요.
+ * 레거시 로컬스토리지 헬퍼(온보딩 폴백 등). 세션·사용자 모델은 `session-user`·API와 동기화합니다.
  */
 
 import {
@@ -9,16 +8,12 @@ import {
   SESSION_STORAGE_KEY,
   USERS_STORAGE_KEY,
 } from "@/lib/session-constants"
+import { GUEST_USER_ID } from "@/lib/guest-user"
+import { type SessionUser, isGuestSessionUser } from "@/lib/session-user"
 
-/** 서버 세션과 동일한 게스트 ID (SQLite 시드) */
-export const GUEST_USER_ID = "user_guest" as const
+export type { SessionUser } from "@/lib/session-user"
 
-export type SessionUser = {
-  id: string
-  email: string
-  name: string
-  isGuest?: boolean
-}
+export { GUEST_USER_ID }
 
 export const GUEST_USER: SessionUser = {
   id: GUEST_USER_ID,
@@ -28,9 +23,7 @@ export const GUEST_USER: SessionUser = {
 }
 
 export function isGuestUser(user: SessionUser | null | undefined): boolean {
-  if (!user) return false
-  if (user.isGuest === true) return true
-  return user.id === GUEST_USER_ID || user.email === "guest@local"
+  return isGuestSessionUser(user)
 }
 
 type StoredUser = SessionUser & {

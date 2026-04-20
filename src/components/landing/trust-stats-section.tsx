@@ -26,7 +26,7 @@ export function TrustStatsSection() {
         ))}
       </div>
       <p className="text-caption mt-8 text-center">
-        수치는 데모용 예시이며, 실제 서비스에서는 검증된 지표로 교체할 수 있습니다.
+        운영 환경에서는 실제 지표·대시보드 데이터로 교체할 수 있습니다.
       </p>
     </MarketingSection>
   )

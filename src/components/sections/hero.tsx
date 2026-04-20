@@ -121,7 +121,10 @@ export function Hero() {
                   </div>
                 </div>
 
-                <div className="bg-muted/50 flex items-center gap-3 rounded-xl border border-border/60 px-4 py-3">
+                <Link
+                  href={`/analyze/keyword?q=${encodeURIComponent(heroSampleRank.keyword)}`}
+                  className="bg-muted/50 hover:bg-muted/70 flex items-center gap-3 rounded-xl border border-border/60 px-4 py-3 transition-colors"
+                >
                   <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums">
                     {heroSampleRank.rank}
                   </span>
@@ -132,7 +135,7 @@ export function Hero() {
                     N
                   </span>
                   <span className="min-w-0 truncate text-sm font-medium">{heroSampleRank.keyword}</span>
-                </div>
+                </Link>
 
                 <div className="flex flex-wrap items-center justify-end gap-4 text-[12px] font-medium">
                   <Link

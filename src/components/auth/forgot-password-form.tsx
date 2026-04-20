@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 
-import { userExists } from "@/lib/local-auth"
 import { forgotPasswordSchema, type ForgotPasswordValues } from "@/lib/validators"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,14 +20,29 @@ export function ForgotPasswordForm() {
     defaultValues: { email: "" },
   })
 
-  function onSubmit(data: ForgotPasswordValues) {
-    const exists = userExists(data.email)
-    toast.success(
-      exists
-        ? "재설정 링크를 보냈습니다. 메일함을 확인해 주세요."
-        : "요청을 접수했습니다. 등록된 이메일이면 안내를 보냅니다.",
-      { description: "데모 환경에서는 실제 메일이 발송되지 않습니다." },
-    )
+  async function onSubmit(data: ForgotPasswordValues) {
+    const res = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: data.email }),
+    })
+    const payload = (await res.json().catch(() => ({}))) as {
+      message?: string
+      devResetPath?: string
+      error?: unknown
+    }
+    if (!res.ok) {
+      toast.error(typeof payload.error === "string" ? payload.error : "요청에 실패했습니다.")
+      return
+    }
+    toast.success(payload.message ?? "요청을 접수했습니다.")
+    if (payload.devResetPath && typeof window !== "undefined") {
+      const full = `${window.location.origin}${payload.devResetPath}`
+      toast.message("개발 모드: 아래 주소로 새 비밀번호를 설정할 수 있습니다.", {
+        description: full,
+        duration: 25_000,
+      })
+    }
   }
 
   return (

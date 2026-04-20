@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server"
 
-import {
-  GUEST_USER_ID,
-  getSessionWithUser,
-  isGuestUserRecord,
-  randomSessionToken,
-  sessionExpiresAt,
-} from "@/lib/auth-server"
+import { getSessionWithUser, randomSessionToken, sessionExpiresAt } from "@/lib/auth-server"
+import { GUEST_USER_ID } from "@/lib/guest-user"
 import { setSessionCookie } from "@/lib/cookie-session"
 import { prisma } from "@/lib/prisma"
+import { userToSessionUser } from "@/lib/session-user"
 
 export async function GET() {
   let session = await getSessionWithUser()
@@ -30,24 +26,13 @@ export async function GET() {
       },
     })
     const res = NextResponse.json({
-      user: {
-        id: guest.id,
-        email: guest.email,
-        name: guest.name,
-        isGuest: true,
-      },
+      user: userToSessionUser(guest),
     })
     setSessionCookie(res, token)
     return res
   }
 
-  const u = session.user
   return NextResponse.json({
-    user: {
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      isGuest: isGuestUserRecord(u),
-    },
+    user: userToSessionUser(session.user),
   })
 }

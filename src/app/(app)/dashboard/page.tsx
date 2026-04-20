@@ -16,13 +16,14 @@ import { emptyDashboardSummary, getDashboardSummary } from "@/lib/dashboard-summ
 export default async function DashboardPage() {
   const session = await getSessionWithUser()
   const summary = session ? await getDashboardSummary(session.userId) : emptyDashboardSummary()
+  const welcomeDismissed = session?.user.dashboardWelcomeDismissed ?? false
 
   return (
     <>
       <DashboardPageHeader />
       <div className="app-content-shell space-y-10">
         <section aria-label="온보딩 안내">
-          <DashboardWelcomeBanner />
+          <DashboardWelcomeBanner initialDismissed={welcomeDismissed} />
         </section>
 
         <section aria-label="주요 작업">

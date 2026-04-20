@@ -29,7 +29,7 @@ export function SocialProofStrip() {
             </div>
           ))}
         </div>
-        <p className="text-caption mt-6 text-center">상단 수치는 데모용 예시입니다.</p>
+        <p className="text-caption mt-6 text-center">상단 수치는 표시용 예시입니다.</p>
       </div>
     </section>
   )

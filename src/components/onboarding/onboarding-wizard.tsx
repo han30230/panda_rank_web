@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { saveOnboardingProfile } from "@/lib/local-auth"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,7 @@ const steps = 4
 
 export function OnboardingWizard() {
   const router = useRouter()
+  const [saving, setSaving] = useState(false)
   const [step, setStep] = useState(1)
   const [role, setRole] = useState<(typeof roles)[number]["id"] | null>(null)
   const [selectedGoals, setSelectedGoals] = useState<Set<string>>(new Set())
@@ -54,15 +56,35 @@ export function OnboardingWizard() {
     setStep((s) => Math.max(s - 1, 1))
   }
 
-  function finish() {
-    if (role) {
+  async function finish() {
+    if (!role || selectedGoals.size === 0) return
+    setSaving(true)
+    try {
+      const res = await fetch("/api/user/onboarding", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role,
+          goals: Array.from(selectedGoals),
+          siteUrl: siteUrl.trim(),
+        }),
+      })
+      if (!res.ok) {
+        throw new Error("저장에 실패했습니다.")
+      }
+      toast.success("프로필을 저장했습니다.")
+    } catch {
       saveOnboardingProfile({
         role,
         goals: Array.from(selectedGoals),
         siteUrl: siteUrl.trim(),
       })
+      toast.message("서버에 저장하지 못했습니다. 이 기기에만 임시로 저장했습니다.")
+    } finally {
+      setSaving(false)
+      router.push("/dashboard")
     }
-    router.push("/dashboard")
   }
 
   return (
@@ -179,8 +201,13 @@ export function OnboardingWizard() {
               </span>
             </li>
           </ul>
-          <Button className="mt-8 w-full rounded-xl" type="button" onClick={finish}>
-            대시보드로 이동
+          <Button
+            className="mt-8 w-full rounded-xl"
+            type="button"
+            disabled={saving}
+            onClick={() => void finish()}
+          >
+            {saving ? "저장 중…" : "대시보드로 이동"}
           </Button>
           <Button variant="ghost" className="mt-2 w-full rounded-xl" asChild>
             <Link href="/analyze/keyword">바로 분석하기</Link>

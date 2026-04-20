@@ -13,8 +13,27 @@ model User {
   passwordHash String
   name         String
   createdAt    DateTime  @default(now())
-  sessions     Session[]
-  reports      Report[]
+  /// 온보딩에서 선택한 역할 (marketer | creator | operator 등)
+  onboardingRole         String?
+  onboardingGoals        Json?
+  siteUrl                String?
+  onboardingCompletedAt  DateTime?
+  dashboardWelcomeDismissed Boolean @default(false)
+  sessions               Session[]
+  reports                Report[]
+  passwordResetTokens    PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
 }
 
 model Session {

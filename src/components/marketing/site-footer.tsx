@@ -57,7 +57,7 @@ export function SiteFooter() {
           </div>
         </div>
         <p className="text-muted-foreground mt-12 border-t border-border/60 pt-8 text-xs">
-          © {new Date().getFullYear()} {siteConfig.name}. 데모 목적의 UI입니다.
+          © {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
         </p>
       </div>
     </footer>
